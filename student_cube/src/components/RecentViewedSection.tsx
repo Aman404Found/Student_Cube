@@ -1,0 +1,250 @@
+import { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronRight, ArrowRight, Eye } from 'lucide-react';
+import api from '../utils/api';
+import { getProductImageUrl } from '../utils/productImages';
+import type { ProductImageValue } from '../utils/productImages';
+import { BrutalCard, BrutalCardImage, BrutalCardContent, BrutalCardFooter } from './ui/brutal-card';
+import { BrutalBadge } from './ui/brutal-badge';
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { EASE_SNAP, prefersReducedMotion, STAGGER_GAP } from "../lib/motion";
+
+interface RecentProduct {
+  _id: string;
+  title?: string;
+  name?: string;
+  price?: number;
+  category?: string;
+  condition?: string;
+  views?: number;
+  images?: ProductImageValue[]; 
+  [key: string]: unknown;
+}
+
+const readRecentProducts = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('recentProducts') || '[]');
+    return Array.isArray(saved) ? saved : [];
+  } catch (error) {
+    console.error("Error reading recent products:", error);
+    return [];
+  }
+};
+
+const RecentViewedSection = () => {
+  const [recentlyViewed, setRecentlyViewed] = useState<RecentProduct[]>(readRecentProducts);
+  const [isCheckingRecent, setIsCheckingRecent] = useState(true);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Product grid stagger entrance animation
+  useGSAP(() => {
+    if (prefersReducedMotion() || recentlyViewed.length === 0) return;
+
+    gsap.fromTo(
+      gridRef.current?.children || [],
+      { y: 20, opacity: 0 },
+      { 
+        y: 0, 
+        opacity: 1, 
+        duration: 0.4, 
+        ease: EASE_SNAP, 
+        stagger: STAGGER_GAP,
+        delay: 0.3,
+        scrollTrigger: {
+          trigger: gridRef.current,
+          start: "top 85%",
+        }
+      }
+    );
+  }, { scope: gridRef, dependencies: [recentlyViewed] });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const validateRecentProducts = async () => {
+      const savedProducts = readRecentProducts();
+      const ids = [...new Set(
+        savedProducts
+          .map((product) => product?._id)
+          .filter((id): id is string => Boolean(id)),
+      )].slice(0, 4);
+
+      if (ids.length === 0) {
+        localStorage.removeItem('recentProducts');
+        if (isMounted) {
+          setRecentlyViewed([]);
+          setIsCheckingRecent(false);
+        }
+        return;
+      }
+
+      try {
+        const response = await api.post('/products/recent', { ids });
+        const validProducts = Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
+
+        if (!isMounted) return;
+
+        setRecentlyViewed(validProducts);
+        if (validProducts.length > 0) {
+          localStorage.setItem('recentProducts', JSON.stringify(validProducts));
+        } else {
+          localStorage.removeItem('recentProducts');
+        }
+      } catch (error) {
+        console.error("Error validating recent products:", error);
+        if (isMounted) {
+          setRecentlyViewed([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsCheckingRecent(false);
+        }
+      }
+    };
+
+    validateRecentProducts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (isCheckingRecent || recentlyViewed.length === 0) return null;
+
+  return (
+    <section className="py-12 md:py-16 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto">
+
+      {/* === HEADER === */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 md:mb-10 gap-4">
+        <div>
+          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold uppercase tracking-tight text-ink mb-2">
+            Recently Viewed
+          </h2>
+          <p className="font-body text-sm md:text-lg text-ink/60">
+            Pick up right where you left off
+          </p>
+        </div>
+        <Link to="/buy">
+          <button className="flex items-center font-body font-semibold text-sm md:text-base text-ledger-blue hover:text-ink transition-colors group brutal-focus">
+            Browse All{" "}
+            <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </Link>
+      </div>
+
+      {/* === CARDS GRID === */}
+      <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {recentlyViewed.map((prod) => {
+          return (
+          // Card Container
+          <Link
+            key={prod._id}
+            to={`/product/${prod._id}`}
+            className="group flex flex-col h-full"
+          >
+            <BrutalCard noHover>
+              <BrutalCardImage className="relative h-48 bg-paper-blue">
+                {prod.images && prod.images.length > 0 ? (
+                  <img
+                    src={getProductImageUrl(prod.images[0])}
+                    alt={prod.title || prod.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-paper-blue flex items-center justify-center text-ink/40 font-mono text-sm">
+                    No Image
+                  </div>
+                )}
+
+                {/* VIEWED Badge */}
+                <div className="absolute top-3 left-3 brutal-block-sm bg-ink text-paper"
+                  style={{
+                    border: "var(--border-w-sm) solid var(--color-ink)",
+                    borderRadius: "var(--brutal-radius)",
+                  }}
+                >
+                  <span className="font-mono text-[10px] font-semibold uppercase tracking-wide px-2 py-1">
+                    VIEWED
+                  </span>
+                </div>
+              </BrutalCardImage>
+
+              <BrutalCardContent className="flex flex-col grow">
+
+                {/* Tags Row */}
+                <div className="flex justify-between items-center mb-3">
+                  <span className="font-mono text-[10px] font-semibold uppercase tracking-wide text-ink/60 px-2 py-1 bg-paper-blue"
+                    style={{
+                      border: "var(--border-w-sm) solid var(--color-ink)",
+                      borderRadius: "var(--brutal-radius)",
+                    }}
+                  >
+                    {prod.category || 'OTHERS'}
+                  </span>
+                  <BrutalBadge condition={prod.condition?.toLowerCase() === "like new" ? "like-new" : "good"}>
+                    {prod.condition || 'GOOD'}
+                  </BrutalBadge>
+                </div>
+
+                {/* Product Title */}
+                <h3 className="font-body font-bold text-lg text-ink mb-3 line-clamp-1 group-hover:text-ledger-blue transition-colors">
+                  {prod.title || prod.name}
+                </h3>
+
+                {/* User Info Row - ANONYMIZED */}
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-6 h-6 flex items-center justify-center font-mono font-bold text-xs uppercase bg-paper text-ink"
+                    style={{
+                      border: "var(--border-w-sm) solid var(--color-ink)",
+                      borderRadius: "var(--brutal-radius)",
+                    }}
+                  >
+                    S
+                  </div>
+                  <span className="font-body text-sm font-bold text-ink/60">
+                    Unknown User
+                  </span>
+                </div>
+
+                {/* Spacer to push price to bottom */}
+                <div className="grow"></div>
+              </BrutalCardContent>
+
+              <BrutalCardFooter className="pt-4 mt-auto border-t" style={{ borderTopColor: "var(--color-ink)", borderTopWidth: "var(--border-w-sm)", borderTopStyle: "solid" }}>
+                <span className="font-mono text-2xl font-bold text-ink">
+                  ₹{prod.price || 0}
+                </span>
+                <div className="flex items-center font-mono text-ink/40 text-xs font-semibold">
+                  <Eye className="w-4 h-4 mr-1.5" />
+                  {prod.views || 0}
+                </div>
+              </BrutalCardFooter>
+            </BrutalCard>
+          </Link>
+          );
+        })}
+      </div>
+
+      {/* === FOOTER BUTTON === */}
+      <div className="flex justify-center mt-10 md:mt-12">
+        <Link to="/buy">
+          <button className="flex items-center px-6 py-3 font-body font-bold text-sm md:text-base brutal-block bg-paper text-ink cursor-pointer transition-all duration-120 hover:translate-y-[-2px]"
+            style={{
+              border: "var(--border-w) solid var(--color-ink)",
+              borderRadius: "var(--brutal-radius)",
+            }}
+          >
+            View All Products{" "}
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </Link>
+      </div>
+
+    </section>
+  );
+};
+
+export default RecentViewedSection;

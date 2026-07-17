@@ -1,0 +1,62 @@
+/* StudentCube — Neubrutalism Design Tokens
+   Source of truth: docs/redesign/design.md
+   Imported once from index.css — every token becomes a Tailwind utility automatically.
+   Google Fonts (IBM Plex Sans / Sans Condensed / Mono) imported at the top of index.css. */
+
+@theme {
+  /* ── Colors (design.md §2) ── */
+  --color-ink: #0A0A0A;
+  --color-paper: #FFFFFF;
+  --color-paper-blue: #EEF2FC;
+  --color-signal-orange: #FF5A1F;
+  --color-campus-green: #12B76A;
+  --color-ledger-blue: #2952E3;
+  --color-highlighter: #FFD400;
+  --color-stamp-red: #FF3B5C;
+
+  /* ── Typography (design.md §3) ── */
+  --font-display: 'IBM Plex Sans Condensed', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+/* ── Brutal primitives (design.md §4) ── */
+:root {
+  --border-w: 3px;
+  --border-w-sm: 2px;
+  --shadow-off: 4px;
+  --shadow-off-lg: 6px;
+  --brutal-radius: 0px;
+}
+
+/* Base brutal-block interaction pattern */
+.brutal-block {
+  border: var(--border-w) solid var(--color-ink);
+  box-shadow: var(--shadow-off) var(--shadow-off) 0 0 var(--color-ink);
+  border-radius: var(--brutal-radius);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.brutal-block:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-off-lg) var(--shadow-off-lg) 0 0 var(--color-ink);
+}
+
+.brutal-block:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 0 var(--color-ink);
+}
+
+/* Small variant for badges/chips */
+.brutal-block-sm {
+  border: var(--border-w-sm) solid var(--color-ink);
+  box-shadow: 3px 3px 0 0 var(--color-ink);
+  border-radius: var(--brutal-radius);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+/* Focus-visible accessibility (design.md §7) — never use outline:none without this */
+.brutal-focus:focus-visible {
+  outline: 2px solid var(--color-ledger-blue);
+  outline-offset: 2px;
+}
