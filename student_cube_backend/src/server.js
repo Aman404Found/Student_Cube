@@ -37,7 +37,12 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // 1. CORS Setup
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://studentcube.vercel.app'], 
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:5174', 
+    'https://studentcube-1.vercel.app',
+    process.env.CLIENT_URL // Dynamically allow the frontend URL set in Render
+  ].filter(Boolean), 
   credentials: true,
 }));
 
