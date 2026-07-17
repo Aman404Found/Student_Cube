@@ -347,8 +347,8 @@ const ProductDetail = () => {
     if (status === "rejected" || status === "failed" || status === "revoked")
       return "bg-rose-100 text-rose-700";
     if (status === "countered") return "bg-blue-100 text-blue-700";
-    if (status === "accepted") return "bg-emerald-100 text-emerald-700";
-    return "bg-slate-100 text-slate-600";
+    if (status === "accepted") return "bg-campus-green/20 text-campus-green";
+    return "bg-paper-blue/50 text-ink/80";
   };
 
   // Chat / Unlock Handler
@@ -374,13 +374,13 @@ const ProductDetail = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex flex-col justify-center items-center bg-slate-50">
-        <h2 className="text-2xl font-bold text-slate-800 mb-4">
+      <div className="min-h-screen flex flex-col justify-center items-center bg-paper-blue">
+        <h2 className="text-2xl font-bold text-ink mb-4">
           Product Not Found
         </h2>
         <button
           onClick={() => navigate(-1)}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold"
+          className="px-6 py-2 bg-ledger-blue text-paper rounded-lg font-bold"
         >
           Go Back
         </button>
@@ -441,28 +441,28 @@ const ProductDetail = () => {
                   />
                 </Lens>
               ) : (
-                <div className="text-slate-400 font-medium">
+                <div className="text-ink/60 font-medium">
                   No Image Available
                 </div>
               )}
 
               {/* Sold Out Overlay */}
               {product.status === "SOLD_OUT" && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px] pointer-events-none z-10">
-                  <span className="bg-red-600 text-white text-2xl uppercase font-black px-8 py-3 rounded-xl shadow-2xl rotate-[-15deg] tracking-widest border-4 border-red-700">
+                <div className="absolute inset-0 bg-ink/40 flex items-center justify-center backdrop-blur-[2px] pointer-events-none z-10">
+                  <span className="bg-stamp-red text-paper text-2xl uppercase font-black px-8 py-3 rounded-xl brutal-block rotate-[-15deg] tracking-widest border-4 border-ink">
                     SOLD OUT
                   </span>
                 </div>
               )}
 
               {/* Expand Icon Tooltip (Desktop Hover) */}
-              <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm hidden sm:block">
+              <div className="absolute top-4 right-4 bg-paper/80 backdrop-blur-sm p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm hidden sm:block">
                 <p className="text-xs font-bold text-slate-700">
                   Click to expand
                 </p>
               </div>
 
-              <div className="absolute bottom-4 right-4 z-20 bg-black text-white p-2.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform">
+              <div className="absolute bottom-4 right-4 z-20 bg-ink text-paper p-2.5 rounded-full brutal-block-sm group-hover:scale-110 transition-transform">
                 <Maximize className="w-5 h-5" />
               </div>
             </div>
@@ -739,10 +739,10 @@ const ProductDetail = () => {
 
       {/* Make an Offer Modal */}
       {isOfferModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-xl font-extrabold text-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-paper rounded-3xl brutal-block w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-ink bg-paper-blue">
+              <h3 className="text-xl font-extrabold text-ink">
                 Make an Offer
               </h3>
               <p className="text-xs font-semibold text-slate-500 mt-1">
@@ -758,7 +758,7 @@ const ProductDetail = () => {
                 Your Price
               </label>
               <div className="relative mb-6">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/60 font-bold text-lg">
                   ₹
                 </span>
                 <input
@@ -768,7 +768,7 @@ const ProductDetail = () => {
                   value={offerPrice}
                   onChange={(e) => setOfferPrice(e.target.value)}
                   placeholder="e.g. 450"
-                  className="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:font-medium placeholder:text-slate-300"
+                  className="w-full pl-8 pr-4 py-3 bg-paper-blue border border-ink rounded-xl text-lg font-bold text-ink focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:font-medium placeholder:text-slate-300"
                 />
               </div>
 
@@ -784,7 +784,7 @@ const ProductDetail = () => {
                     value={chatAlias}
                     onChange={(e) => setChatAlias(e.target.value)}
                     placeholder="e.g. Calculator deal"
-                    className="w-full px-4 py-3 mb-6 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:font-medium placeholder:text-slate-300"
+                    className="w-full px-4 py-3 mb-6 bg-paper-blue border border-ink rounded-xl text-sm font-bold text-ink focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:font-medium placeholder:text-slate-300"
                   />
                 </>
               )}
@@ -793,14 +793,14 @@ const ProductDetail = () => {
                 <button
                   type="button"
                   onClick={() => setIsOfferModalOpen(false)}
-                  className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors"
+                  className="flex-1 py-3 bg-paper border border-ink text-ink/80 rounded-xl font-bold text-sm hover:bg-paper-blue transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingOffer}
-                  className="flex-1 py-3 bg-slate-900 hover:bg-black disabled:bg-slate-400 text-white rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center"
+                  className="flex-1 py-3 bg-ink hover:bg-ink disabled:bg-slate-400 text-paper rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center"
                 >
                   {isSubmittingOffer ? "Sending..." : "Send Offer"}
                 </button>
@@ -812,12 +812,12 @@ const ProductDetail = () => {
 
       {/* SELLER'S SPLIT-SCREEN DASHBOARD MODAL */}
       {isSellerModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200 font-sans">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-150 overflow-hidden flex animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-md animate-in fade-in duration-200 font-sans">
+          <div className="bg-paper rounded-3xl brutal-block w-full max-w-4xl h-150 overflow-hidden flex animate-in zoom-in-95 duration-200">
             {/* ⬅️ LEFT SIDE: Anonymous Request List */}
-            <div className="w-1/3 bg-slate-50 border-r border-slate-200 flex flex-col">
-              <div className="p-5 border-b border-slate-200 bg-white">
-                <h3 className="font-extrabold text-slate-900 text-lg">
+            <div className="w-1/3 bg-paper-blue border-r border-ink flex flex-col">
+              <div className="p-5 border-b border-ink bg-paper">
+                <h3 className="font-extrabold text-ink text-lg">
                   Active Offers
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
@@ -826,7 +826,7 @@ const ProductDetail = () => {
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {sellerOffers.length === 0 ? (
-                  <p className="text-center text-slate-400 text-sm font-semibold mt-10">
+                  <p className="text-center text-ink/60 text-sm font-semibold mt-10">
                     No offers yet.
                   </p>
                 ) : (
@@ -838,10 +838,10 @@ const ProductDetail = () => {
                         setIsCountering(false);
                         setCounterAmount("");
                       }}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${selectedOffer?._id === offer._id ? "border-blue-600 bg-blue-50 shadow-sm" : "border-transparent bg-white hover:border-slate-200 hover:shadow-sm"}`}
+                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${selectedOffer?._id === offer._id ? "border-blue-600 bg-blue-50 shadow-sm" : "border-transparent bg-paper hover:border-ink hover:shadow-sm"}`}
                     >
                       <div className="flex justify-between items-center mb-1">
-                        <span className="font-bold text-slate-800 text-sm">
+                        <span className="font-bold text-ink text-sm">
                           Student #{offer._id.slice(-4).toUpperCase()}
                         </span>
                         <span
@@ -866,10 +866,10 @@ const ProductDetail = () => {
             </div>
 
             {/* ➡️ RIGHT SIDE: Live Action Panel */}
-            <div className="w-2/3 bg-white flex flex-col relative">
+            <div className="w-2/3 bg-paper flex flex-col relative">
               <button
                 onClick={() => setIsSellerModalOpen(false)}
-                className="absolute top-5 right-5 text-slate-400 hover:text-slate-800 bg-slate-100 p-2 rounded-full"
+                className="absolute top-5 right-5 text-ink/60 hover:text-ink bg-paper-blue/50 p-2 rounded-full"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -877,15 +877,15 @@ const ProductDetail = () => {
               {selectedOffer ? (
                 <div className="p-10 flex flex-col h-full justify-center">
                   <div className="mb-8">
-                    <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    <p className="text-sm font-bold text-ink/60 uppercase tracking-wider mb-2">
                       Offer From
                     </p>
-                    <h2 className="text-3xl font-black text-slate-900">
+                    <h2 className="text-3xl font-black text-ink">
                       Student #{selectedOffer._id.slice(-4).toUpperCase()}
                     </h2>
                   </div>
 
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8">
+                  <div className="bg-paper-blue p-6 rounded-2xl border border-ink mb-8">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-bold text-slate-500 mb-1">
@@ -935,7 +935,7 @@ const ProductDetail = () => {
                       ) ? (
                         <button
                           onClick={() => setIsCountering(true)}
-                          className="py-4 w-full bg-slate-900 hover:bg-black text-white font-bold rounded-xl shadow-lg transition-all text-lg"
+                          className="py-4 w-full bg-ink hover:bg-ink text-paper font-bold rounded-xl shadow-lg transition-all text-lg"
                         >
                           {selectedOffer.counterPrice
                             ? "Update Counter Offer"
@@ -950,7 +950,7 @@ const ProductDetail = () => {
                         Your Demand
                       </label>
                       <div className="relative mb-4">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/60 font-bold text-lg">
                           ₹
                         </span>
                         <input
@@ -959,19 +959,19 @@ const ProductDetail = () => {
                           value={counterAmount}
                           onChange={(e) => setCounterAmount(e.target.value)}
                           placeholder="e.g. 50"
-                          className="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          className="w-full pl-8 pr-4 py-3 bg-paper-blue border border-ink rounded-xl text-lg font-bold text-ink focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                       </div>
                       <div className="flex gap-3">
                         <button
                           onClick={() => setIsCountering(false)}
-                          className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition-colors"
+                          className="flex-1 py-3 bg-paper border border-ink text-ink/80 rounded-xl font-bold hover:bg-paper-blue transition-colors"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={() => handleCounterOffer(selectedOffer._id)}
-                          className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md"
+                          className="flex-1 py-3 bg-ledger-blue hover:bg-ledger-blue/90 text-paper rounded-xl font-bold shadow-md"
                         >
                           Send Counter
                         </button>
@@ -980,7 +980,7 @@ const ProductDetail = () => {
                   )}
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                <div className="flex-1 flex flex-col items-center justify-center text-ink/60">
                   <Tag className="w-16 h-16 mb-4 opacity-50" />
                   <p className="text-lg font-semibold">
                     Select an offer from the list
@@ -998,13 +998,13 @@ const ProductDetail = () => {
       {/* 🔍 FULL SCREEN IMAGE EXPAND MODAL */}
       {isImageExpanded && product?.images && product.images.length > 0 && (
         <div
-          className="fixed inset-0 z-100 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 sm:p-10 animate-in fade-in duration-200 cursor-zoom-out"
+          className="fixed inset-0 z-100 flex items-center justify-center bg-ink/95 backdrop-blur-sm p-4 sm:p-10 animate-in fade-in duration-200 cursor-zoom-out"
           onClick={() => setIsImageExpanded(false)} // Background pe click karne se band hoga
         >
           {/* Close Button */}
           <button
             onClick={() => setIsImageExpanded(false)}
-            className="absolute top-4 right-4 sm:top-8 sm:right-8 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-110"
+            className="absolute top-4 right-4 sm:top-8 sm:right-8 text-paper/70 hover:text-paper bg-paper/10 hover:bg-paper/20 p-3 rounded-full transition-all z-110"
           >
             <X className="w-6 h-6 sm:w-8 sm:h-8" />
           </button>
@@ -1014,7 +1014,7 @@ const ProductDetail = () => {
             <img
               src={getProductImageUrl(product.images[activeImage])}
               alt={product.title || "Expanded view"}
-              className="max-w-full max-h-full object-contain cursor-default select-none shadow-2xl"
+              className="max-w-full max-h-full object-contain cursor-default select-none brutal-block"
               onClick={(e) => e.stopPropagation()} // Image pe click karne se band NAHI hoga
             />
           </div>

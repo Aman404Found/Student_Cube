@@ -24,7 +24,7 @@ interface LoaderProps {
   children: React.ReactNode;
 }
 
-function Loader({ minDisplayMs = 800, children }: LoaderProps) {
+function Loader({ children }: LoaderProps) {
   const [isReady, setIsReady] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
@@ -121,7 +121,7 @@ function Loader({ minDisplayMs = 800, children }: LoaderProps) {
           ref={loaderRef}
           className={`
             fixed inset-0 z-[9999] flex flex-col items-center justify-center
-            bg-highlighter
+            bg-highlighter 
             transition-transform duration-700 ease-in-out
             ${isFadingOut ? "-translate-y-full" : "translate-y-0"}
           `}
@@ -137,13 +137,13 @@ function Loader({ minDisplayMs = 800, children }: LoaderProps) {
           {/* Wordmark */}
           <h1
             ref={wordmarkRef}
-            className="font-display text-4xl md:text-6xl uppercase tracking-tight text-ink select-none mb-8 flex"
+            className="font-display text-4xl md:text-6xl uppercase tracking-tight text-[#0A0A0A] select-none mb-8 flex"
             style={{ perspective: "400px" }}
           >
             {"StudentCube".split("").map((char, i) => (
               <span
                 key={i}
-                className="wordmark-letter inline-block"
+                className="wordmark-letter inline-block "
                 style={{ opacity: reducedMotion ? 1 : 0 }}
               >
                 {char}
@@ -153,11 +153,11 @@ function Loader({ minDisplayMs = 800, children }: LoaderProps) {
 
           {/* Progress bar container — brutal-block */}
           <div
-            className="w-64 md:w-80 h-5 bg-paper"
+            className="w-64 md:w-80 h-5 bg-paper "
             style={{
               border: "var(--border-w) solid var(--color-ink)",
               boxShadow:
-                "var(--shadow-off) var(--shadow-off) 0 0 var(--color-ink)",
+                "var(--shadow-off) var(--shadow-off) 0 0 #0A0A0A",
               borderRadius: "var(--brutal-radius)",
             }}
           >

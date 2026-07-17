@@ -14,6 +14,7 @@ import {
   BadgeCheck,
   X,
 } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "../context/AuthContext";
 import logo1 from "../assets/logo-1.jpeg";
 import api from "../utils/api";
@@ -183,8 +184,8 @@ const Navbar = () => {
                 to={item.path}
                 className={`flex items-center gap-2 px-3 xl:px-4 py-2 font-body font-bold text-sm uppercase tracking-wide brutal-focus transition-all duration-120 ${
                   isActive
-                    ? "bg-highlighter text-ink"
-                    : "bg-paper text-ink hover:bg-highlighter"
+                    ? "bg-highlighter text-[#0A0A0A]"
+                    : "bg-paper text-ink hover:bg-highlighter hover:text-[#0A0A0A]"
                 }`}
                 style={{
                   border: isActive ? "var(--border-w-sm) solid var(--color-ink)" : "var(--border-w-sm) solid transparent",
@@ -211,6 +212,7 @@ const Navbar = () => {
 
         {/* Auth & Admin Buttons */}
         <div className="flex items-center shrink-0 gap-3">
+          <ThemeToggle />
           {isAdmin && (
             <Link to="/admin">
               <button className="flex items-center gap-2 px-4 py-2 bg-ledger-blue text-paper font-body font-bold text-sm uppercase tracking-wide brutal-focus cursor-pointer transition-all duration-120 hover:translate-y-[-2px]"
@@ -339,6 +341,11 @@ const Navbar = () => {
             </div>
           </form>
 
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-body font-bold text-sm uppercase text-ink">Theme</span>
+            <ThemeToggle />
+          </div>
+
           {/* Mobile Links */}
           <div className="flex flex-col gap-2">
             {navItems.map((item) => {
@@ -349,10 +356,10 @@ const Navbar = () => {
                   key={item.name}
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 font-body font-bold text-sm uppercase tracking-wide brutal-focus transition-all duration-120 ${
+                  className={`group flex items-center gap-3 px-4 py-3 font-body font-bold text-sm uppercase tracking-wide brutal-focus transition-all duration-120 ${
                     isActive
                       ? "bg-ink text-paper"
-                      : "bg-paper text-ink hover:bg-highlighter"
+                      : "bg-paper text-ink hover:bg-highlighter hover:text-[#0A0A0A]"
                   }`}
                   style={{
                     border: "var(--border-w-sm) solid var(--color-ink)",
@@ -361,7 +368,7 @@ const Navbar = () => {
                 >
                   <span className="relative">
                     <Icon
-                      className={`w-5 h-5 ${isActive ? "text-paper" : "text-ink"}`}
+                      className={`w-5 h-5 ${isActive ? "text-paper" : "text-ink group-hover:text-[#0A0A0A]"}`}
                     />
                     {item.name === "Chat" && hasUnreadChats && (
                       <span className="absolute -right-1 -top-1 w-2.5 h-2.5 bg-stamp-red"

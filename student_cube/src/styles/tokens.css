@@ -3,16 +3,45 @@
    Imported once from index.css — every token becomes a Tailwind utility automatically.
    Google Fonts (IBM Plex Sans / Sans Condensed / Mono) imported at the top of index.css. */
 
+:root {
+  --theme-ink: #0A0A0A;
+  --theme-paper: #FFFFFF;
+  --theme-paper-blue: #EEF2FC;
+  --theme-signal-orange: #FF5A1F;
+  --theme-campus-green: #12B76A;
+  --theme-ledger-blue: #2952E3;
+  --theme-highlighter: #FFD400;
+  --theme-stamp-red: #FF3B5C;
+}
+
+.dark {
+  --theme-ink: #F5F5F5;
+  --theme-paper: #121212;
+  --theme-paper-blue: #1E293B;
+  /* Accent colors remain vibrant for contrast */
+  --theme-signal-orange: #FF5A1F;
+  --theme-campus-green: #12B76A;
+  --theme-ledger-blue: #2952E3;
+  --theme-highlighter: #FFD400;
+  --theme-stamp-red: #FF3B5C;
+}
+
+.force-light {
+  --theme-ink: #0A0A0A !important;
+  --theme-paper: #FFFFFF !important;
+  --theme-paper-blue: #EEF2FC !important;
+}
+
 @theme {
   /* ── Colors (design.md §2) ── */
-  --color-ink: #0A0A0A;
-  --color-paper: #FFFFFF;
-  --color-paper-blue: #EEF2FC;
-  --color-signal-orange: #FF5A1F;
-  --color-campus-green: #12B76A;
-  --color-ledger-blue: #2952E3;
-  --color-highlighter: #FFD400;
-  --color-stamp-red: #FF3B5C;
+  --color-ink: var(--theme-ink);
+  --color-paper: var(--theme-paper);
+  --color-paper-blue: var(--theme-paper-blue);
+  --color-signal-orange: var(--theme-signal-orange);
+  --color-campus-green: var(--theme-campus-green);
+  --color-ledger-blue: var(--theme-ledger-blue);
+  --color-highlighter: var(--theme-highlighter);
+  --color-stamp-red: var(--theme-stamp-red);
 
   /* ── Typography (design.md §3) ── */
   --font-display: 'IBM Plex Sans Condensed', sans-serif;

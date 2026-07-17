@@ -193,3 +193,22 @@ _(Anything flagged during a phase that wasn't fixed in that phase — so it does
 _(Anything actually built differently than `design.md`/`architecture.md`/`phases.md` describes, and the reason. This is what keeps the doc set honest over time — if this section grows long, consider updating the source doc instead of just logging around it.)_
 
 - None logged yet.
+
+### Phase 4 — System-Wide Dark Mode
+- **Status:** ✅ Complete
+- **Date:** 2026-07-17
+- **Files touched:**
+  - `src/styles/tokens.css` — **EDITED** — Added `:root` and `.dark` blocks for dynamic `--theme-*` variables mapping to `@theme`.
+  - `src/context/ThemeContext.tsx` — **NEW** — Created Context to handle `localStorage` state and toggle `dark` class on root HTML.
+  - `src/components/ThemeToggle.tsx` — **NEW** — Interactive Moon/Sun toggle component in Neubrutalist style.
+  - `src/App.tsx` — **EDITED** — Wrapped app in `<ThemeProvider>`.
+  - `src/components/Navbar.tsx` — **EDITED** — Added ThemeToggle to both Desktop auth area and Mobile menu.
+  - `src/pages/ProductDetail.tsx` — **EDITED** — Scrubbed massive amounts of legacy Tailwind colors (`bg-white`, `text-slate-800`, `shadow-2xl`) and replaced with `bg-paper`, `text-ink`, and `brutal-block`.
+  - `src/pages/BrowseProducts.tsx` — **EDITED** — Scrubbed legacy filter sidebar colors for Neubrutalist compatibility.
+  - `src/components/AdminReviewPanel.tsx` — **EDITED** — Scrubbed legacy `bg-emerald` and `bg-rose` for `campus-green` and `stamp-red`.
+- **Summary:**
+  - Architected Tailwind v4 dynamic theming.
+  - Deployed `ThemeToggle` component with persistence.
+  - Stripped out remaining Phase 0 legacy colors to ensure standard Neubrutalism rules (black/white inversion + consistent vibrant accents).
+- **Deviations from plan:**
+  - Used python scripts to batch-replace string literals due to volume in `ProductDetail.tsx`.

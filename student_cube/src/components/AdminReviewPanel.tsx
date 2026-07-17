@@ -523,14 +523,14 @@ const AdminReviewPanel = () => {
                     onClick={() =>
                       handleStatusUpdate(selectedProduct._id, "approved")
                     }
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                    className="bg-campus-green hover:bg-campus-green/80 text-paper font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-60"
                   >
                     <Check className="w-4 h-4" /> Approve
                   </button>
                   <button
                     disabled={actionLoading === selectedProduct._id}
                     onClick={() => openRejectDialog(selectedProduct)}
-                    className="bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-100 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                    className="bg-stamp-red/10 text-stamp-red hover:bg-stamp-red hover:text-paper border border-stamp-red/20 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-60"
                   >
                     <X className="w-4 h-4" /> Reject
                   </button>

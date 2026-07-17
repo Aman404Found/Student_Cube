@@ -31,7 +31,7 @@ const HomeFeaturedSection = () => {
   useGSAP(() => {
     if (prefersReducedMotion() || featuredProducts.length === 0) return;
 
-    gsap.fromTo(
+      gsap.fromTo(
       gridRef.current?.children || [],
       { y: 20, opacity: 0 },
       { 
@@ -40,7 +40,7 @@ const HomeFeaturedSection = () => {
         duration: 0.4, 
         ease: EASE_SNAP, 
         stagger: STAGGER_GAP,
-        delay: 0.2,
+        delay: 0.3,
         scrollTrigger: {
           trigger: gridRef.current,
           start: "top 85%",
@@ -52,7 +52,7 @@ const HomeFeaturedSection = () => {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/products/featured`, 
+        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/products/featured`,
         );
         setFeaturedProducts(res.data);
       } catch (error) {
@@ -94,11 +94,14 @@ const HomeFeaturedSection = () => {
 
       <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {featuredProducts.map((prod) => (
-          <BrutalCard
+          <Link
             key={prod._id}
-            onClick={() => navigate(`/product/${prod._id}`)}
-            className="cursor-pointer flex flex-col"
+            to={`/product/${prod._id}`}
+            className="group flex flex-col h-full"
           >
+            <BrutalCard
+              className="cursor-pointer flex flex-col h-full"
+            >
             <BrutalCardImage className="relative h-40 sm:h-48 w-full bg-paper-blue">
               <img
                 src={getProductImageUrl(prod.images?.[0]) || "placeholder.png"}
@@ -163,6 +166,7 @@ const HomeFeaturedSection = () => {
               </div>
             </BrutalCardFooter>
           </BrutalCard>
+          </Link>
         ))}
       </div>
     </section>

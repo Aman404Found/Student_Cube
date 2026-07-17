@@ -23,6 +23,7 @@ import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 import "./App.css";
 import { Toaster } from "react-hot-toast";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { ThemeProvider } from "./context/ThemeContext";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CancellationRefund from "./pages/CancellationRefund";
@@ -48,92 +49,93 @@ function App() {
 
   return (
     <GoogleOAuthProvider clientId={clientId}>
-      {/* Toaster pehle se hai, ye ekdum perfect hai */}
-      <Toaster position="bottom-right" reverseOrder={false} /> 
-      <AuthProvider>
-        <Router>
-          <ScrollToTop />
-          <RealtimeBridge />
+      <ThemeProvider defaultTheme="light" storageKey="studentcube-theme">
+        <AuthProvider>
+          <Toaster position="bottom-right" reverseOrder={false} /> 
+          <Router>
+            <ScrollToTop />
+            <RealtimeBridge />
 
-          <div className="min-h-screen flex flex-col">
-            <Navbar />
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
 
-            <div className="grow">
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<Index />} />
-                <Route path="/buy" element={<BrowseProducts />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/getstarted" element={<GetStarted />} />
+              <div className="grow">
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/buy" element={<BrowseProducts />} />
+                  <Route path="/product/:id" element={<ProductDetail />} />
+                  <Route path="/getstarted" element={<GetStarted />} />
 
-                {/* Added Privacy Policy and Terms of Service Routes */}
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/terms-of-service" element={<TermsOfService />} />
-                <Route
-                  path="/cancellation-refund"
-                  element={<CancellationRefund />}
-                />
-                <Route
-                  path="/shipping-exchange"
-                  element={<ShippingExchange />}
-                />
+                  {/* Added Privacy Policy and Terms of Service Routes */}
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route
+                    path="/cancellation-refund"
+                    element={<CancellationRefund />}
+                  />
+                  <Route
+                    path="/shipping-exchange"
+                    element={<ShippingExchange />}
+                  />
 
-                {/* Admin Route */}
-                <Route
-                  path="/admin"
-                  element={
-                    <AdminRoute>
-                      <AdminDashboard />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/ambassador"
-                  element={
-                    <AmbassadorRoute>
-                      <AmbassadorDashboard />
-                    </AmbassadorRoute>
-                  }
-                />
+                  {/* Admin Route */}
+                  <Route
+                    path="/admin"
+                    element={
+                      <AdminRoute>
+                        <AdminDashboard />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/ambassador"
+                    element={
+                      <AmbassadorRoute>
+                        <AmbassadorDashboard />
+                      </AmbassadorRoute>
+                    }
+                  />
 
-                {/* Protected Routes */}
-                <Route
-                  path="/sell"
-                  element={
-                    <ProtectedRoute>
-                      <Sell />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/chat"
-                  element={
-                    <ProtectedRoute>
-                      <Chat />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/chat/:offerId"
-                  element={
-                    <ProtectedRoute>
-                      <Chat />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
+                  {/* Protected Routes */}
+                  <Route
+                    path="/sell"
+                    element={
+                      <ProtectedRoute>
+                        <Sell />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/chat"
+                    element={
+                      <ProtectedRoute>
+                        <Chat />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/chat/:offerId"
+                    element={
+                      <ProtectedRoute>
+                        <Chat />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Routes>
+              </div>
             </div>
-          </div>
-        </Router>
-      </AuthProvider>
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
     </GoogleOAuthProvider>
   );
 }

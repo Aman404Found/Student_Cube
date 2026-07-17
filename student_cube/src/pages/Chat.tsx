@@ -510,20 +510,26 @@ const Chat = () => {
   useGSAP(() => {
     if (prefersReducedMotion()) return;
     if (sidebarRef.current) {
-      gsap.from(".chat-sidebar-item", {
-        x: -20,
-        opacity: 0,
-        duration: 0.5,
-        stagger: STAGGER_GAP / 2,
-        ease: EASE_SNAP,
-      });
+      gsap.fromTo(".chat-sidebar-item", 
+        { x: -20, opacity: 0 },
+        {
+          x: 0,
+          opacity: 1,
+          duration: 0.5,
+          stagger: STAGGER_GAP / 2,
+          ease: EASE_SNAP,
+        }
+      );
     }
     if (chatRef.current) {
-      gsap.from(chatRef.current, {
-        opacity: 0,
-        duration: 0.4,
-        ease: "power2.out",
-      });
+      gsap.fromTo(chatRef.current, 
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 0.4,
+          ease: "power2.out",
+        }
+      );
     }
   }, { dependencies: [sidebarRef.current, chatRef.current, chats.length] });
 
@@ -1056,7 +1062,7 @@ const Chat = () => {
             <h2 className="font-display text-xl uppercase font-bold tracking-tight text-ink truncate">
               {chatTitle}
             </h2>
-            <p className="font-mono text-xs font-bold text-ink/70 truncate uppercase mt-0.5">
+            <p className="font-mono text-xs font-bold text-ink truncate uppercase mt-0.5">
               {canSendCustom ? getUserName(otherUser) : "Hidden Student"}
             </p>
           </div>
@@ -1072,8 +1078,8 @@ const Chat = () => {
       </div>
 
       {!canSendCustom && lockedMessage && (
-        <div className="bg-signal-orange border-b-[var(--border-w)] border-ink px-4 md:px-6 py-4 text-sm text-paper font-bold font-body flex items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="bg-stamp-red border-b-[var(--border-w)] border-ink px-4 md:px-6 py-4 text-sm text-paper font-bold font-body flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3 min-w-0 text-paper">
             <Lock className="w-5 h-5 shrink-0" strokeWidth={2.5} />
             <span className="truncate">{lockedMessage}</span>
           </div>
@@ -1081,7 +1087,7 @@ const Chat = () => {
           {currentUserId !== chatSellerId && (
             <button
               onClick={handleUnlockPayment}
-              className="bg-paper text-signal-orange hover:bg-ink hover:text-paper px-4 py-2 brutal-block-sm font-display uppercase font-bold text-sm transition-colors shrink-0 whitespace-nowrap"
+              className="bg-paper text-stamp-red hover:bg-paper-blue px-4 py-2 brutal-block-sm font-display uppercase font-bold text-sm transition-colors shrink-0 whitespace-nowrap"
             >
               Pay ₹9
             </button>
@@ -1090,10 +1096,10 @@ const Chat = () => {
       )}
 
       {lifecycle?.message && (
-        <div className="bg-rose-50 border-b border-rose-100 px-4 py-3 text-sm text-rose-700 font-semibold shrink-0">
+        <div className="bg-paper-blue border-b border-ink px-4 py-3 text-sm text-ink font-semibold shrink-0">
           <div>{lifecycle.message}</div>
           {lifecycle.deleteAfter && (
-            <div className="text-xs text-rose-500 mt-1">
+            <div className="text-xs text-ink/70 mt-1">
               Scheduled deletion:{" "}
               {new Date(lifecycle.deleteAfter).toLocaleString()}
             </div>

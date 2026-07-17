@@ -255,8 +255,8 @@ const BrowseProducts = () => {
         <div className="flex flex-col md:flex-row gap-8">
           
           {/* SIDEBAR FILTERS */}
-          <aside className="w-full md:w-64 bg-white rounded-2xl shadow-sm border border-slate-100 h-fit overflow-hidden">
-            <div className="flex items-center justify-between gap-3 p-4 md:p-6 md:pb-0">
+          <aside className="w-full md:w-64 bg-paper brutal-block h-fit overflow-hidden">
+            <div className="p-5 border-b-[var(--border-w-sm)] border-ink bg-paper flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setIsFiltersOpen((current) => !current)}
@@ -295,10 +295,10 @@ const BrowseProducts = () => {
                         <button
                           key={option}
                           onClick={() => toggleFilter(category, option)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                          className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors brutal-focus ${
                             isActive 
-                              ? "bg-blue-600 text-white border-blue-600 shadow-md" 
-                              : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700"
+                              ? "bg-ledger-blue text-paper"
+                              : "text-ink/80 hover:bg-paper-blue hover:text-ink"
                           }`}
                         >
                           {option}
