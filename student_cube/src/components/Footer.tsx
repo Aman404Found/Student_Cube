@@ -231,10 +231,10 @@ const Footer = () => {
             </li>
             <li>
               <Link
-                to="/buy?category=Accessories"
+                to="/buy?category=IOT+and+Robotics"
                 className="hover:text-signal-orange transition-colors brutal-focus"
               >
-                Accessories
+                IOT and Robotics
               </Link>
             </li>
             <li>

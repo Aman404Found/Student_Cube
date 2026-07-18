@@ -48,7 +48,7 @@ const filterOptions = {
   Category: [
     "Books & Notes", "Calculators", "Drafters & Instruments",
     "Aakash/Assignment Materials", "Lab Coats & Uniforms",
-    "Electronics & Gadgets", "Accessories", "Others",
+    "Electronics & Gadgets", "IOT and Robotics", "Others",
   ],
   Condition: ["New", "Like New", "Good", "Fair"],
   "Price Range": [

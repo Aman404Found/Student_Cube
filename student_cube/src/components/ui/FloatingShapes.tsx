@@ -5,7 +5,7 @@ const FloatingShapes: React.FC = () => {
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
       {/* Yellow Square - Top Left */}
       <div 
-        className="absolute top-[10%] left-[15%] w-12 h-12 bg-highlighter border-[var(--border-w)] border-solid border-ink shadow-[var(--shadow-off)_var(--shadow-off)_0_0_var(--color-ink)] rotate-12 animate-[float_6s_ease-in-out_infinite]"
+        className=" absolute top-[10%] left-[15%] w-12 h-12 bg-highlighter border-[var(--border-w)] border-solid border-ink shadow-[var(--shadow-off)_var(--shadow-off)_0_0_var(--color-ink)] rotate-12 animate-[float_6s_ease-in-out_infinite]"
       ></div>
 
       {/* Blue Rectangle - Top Right */}

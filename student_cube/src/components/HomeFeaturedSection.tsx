@@ -28,10 +28,10 @@ const HomeFeaturedSection = () => {
 
   // Product grid stagger entrance animation
   useGSAP(() => {
-    if (prefersReducedMotion() || featuredProducts.length === 0) return;
+    if (prefersReducedMotion() || featuredProducts.length === 0 || !gridRef.current || gridRef.current.children.length === 0) return;
 
-      gsap.fromTo(
-      gridRef.current?.children || [],
+    gsap.fromTo(
+      gridRef.current.children,
       { y: 20, opacity: 0 },
       { 
         y: 0, 
@@ -40,6 +40,7 @@ const HomeFeaturedSection = () => {
         ease: EASE_SNAP, 
         stagger: STAGGER_GAP,
         delay: 0.3,
+        clearProps: "all",
         scrollTrigger: {
           trigger: gridRef.current,
           start: "top 85%",
@@ -99,14 +100,21 @@ const HomeFeaturedSection = () => {
             className="group flex flex-col h-full"
           >
             <BrutalCard
+              noHover
               className="cursor-pointer flex flex-col h-full"
             >
             <BrutalCardImage className="relative h-40 sm:h-48 w-full bg-paper-blue">
-              <img
-                src={getProductImageUrl(prod.images?.[0]) || "placeholder.png"}
-                alt={prod.title}
-                className="w-full h-full object-cover"
-              />
+              {prod.images && prod.images.length > 0 ? (
+                <img
+                  src={getProductImageUrl(prod.images[0])}
+                  alt={prod.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-paper-blue flex items-center justify-center text-ink/40 font-mono text-sm">
+                  No Image
+                </div>
+              )}
               <div className="absolute top-3 left-3 flex gap-2">
                 <BrutalBadge condition="top-viewed">Top Viewed</BrutalBadge>
               </div>
@@ -120,10 +128,10 @@ const HomeFeaturedSection = () => {
                     borderRadius: "var(--brutal-radius)",
                   }}
                 >
-                  {prod.category}
+                  {prod.category || 'OTHERS'}
                 </span>
-                <BrutalBadge condition={prod.condition.toLowerCase() === "like new" ? "like-new" : "good"}>
-                  {prod.condition}
+                <BrutalBadge condition={prod.condition?.toLowerCase() === "like new" ? "like-new" : "good"}>
+                  {prod.condition || 'GOOD'}
                 </BrutalBadge>
               </div>
               <h3 className="font-body font-bold text-sm text-ink mb-3 line-clamp-2 leading-snug">

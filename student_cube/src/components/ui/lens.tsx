@@ -15,6 +15,7 @@ interface LensProps {
   isFocusing?: () => void;
   hovering?: boolean;
   setHovering?: (hovering: boolean) => void;
+  className?: string;
 }
 
 export const Lens: React.FC<LensProps> = ({
@@ -25,6 +26,7 @@ export const Lens: React.FC<LensProps> = ({
   position = { x: 200, y: 150 },
   hovering,
   setHovering,
+  className,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +47,7 @@ export const Lens: React.FC<LensProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative overflow-hidden rounded-lg z-20"
+      className={`relative overflow-hidden z-20 ${className || ""}`}
       onMouseEnter={() => {
         setIsHovering(true);
       }}
@@ -73,7 +75,7 @@ export const Lens: React.FC<LensProps> = ({
             }}
           >
             <div
-              className="absolute inset-0"
+              className="absolute inset-2"
               style={{
                 transform: `scale(${zoomFactor})`,
                 transformOrigin: `${position.x}px ${position.y}px`,
@@ -92,7 +94,7 @@ export const Lens: React.FC<LensProps> = ({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="absolute inset-0 overflow-hidden"
+                className="absolute inset-2 overflow-hidden"
                 style={{
                   maskImage: `radial-gradient(circle ${lensSize / 2}px at ${
                     mousePosition.x

@@ -344,12 +344,12 @@ const ProductDetail = () => {
   };
 
   const getOfferStatusClass = (status: string) => {
-    if (status === "pending") return "bg-orange-100 text-orange-700";
+    if (status === "pending") return "bg-signal-orange text-paper";
     if (status === "rejected" || status === "failed" || status === "revoked")
-      return "bg-rose-100 text-rose-700";
-    if (status === "countered") return "bg-blue-100 text-blue-700";
-    if (status === "accepted") return "bg-campus-green/20 text-campus-green";
-    return "bg-paper-blue/50 text-ink/80";
+      return "bg-stamp-red text-paper";
+    if (status === "countered") return "bg-ledger-blue text-paper";
+    if (status === "accepted") return "bg-campus-green text-paper";
+    return "bg-ink text-paper";
   };
 
   // Chat / Unlock Handler
@@ -434,11 +434,11 @@ const ProductDetail = () => {
               className="w-full h-[400px] bg-paper brutal-block flex items-center justify-center mb-4 relative group cursor-pointer overflow-hidden"
             >
               {product.images && product.images.length > 0 ? (
-                <Lens zoomFactor={2}>
+                <Lens zoomFactor={2} className="w-full p-2 md:p-2 h-full">
                   <img
                     src={getProductImageUrl(product.images[activeImage])}
                     alt={product.title || product.name}
-                    className="w-full h-full object-cover p-2 mix-blend-multiply"
+                    className="w-full h-full object-cover mix-blend-multiply"
                   />
                 </Lens>
               ) : (
@@ -463,7 +463,7 @@ const ProductDetail = () => {
                 </p>
               </div>
 
-              <div className="absolute bottom-4 right-4 z-30 bg-ink text-paper p-2.5 rounded-full brutal-block-sm group-hover:scale-110 transition-transform pointer-events-none">
+              <div className="absolute bottom-4 right-4 z-30 bg-ink text-paper p-2.5 rounded-full group-hover:scale-110 transition-transform pointer-events-none">
                 <Maximize className="w-5 h-5" />
               </div>
             </div>
@@ -561,9 +561,9 @@ const ProductDetail = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pt-6">
                 {/* Avatar-Name Section*/}
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 brutal-block-sm flex items-center justify-center font-display text-xl font-extrabold uppercase bg-ink text-paper shrink-0">
+                  <div className="w-12 h-12 flex items-center justify-center font-display text-xl font-medium uppercase bg-ink text-paper shrink-0">
                     {isUnlocked ? (
-                      (product.seller?.username || product.seller?.name || "S")
+                      (product.seller?.username || product.seller?.name || "s")
                         .charAt(0)
                         .toUpperCase()
                     ) : (
@@ -813,21 +813,29 @@ const ProductDetail = () => {
       {/* SELLER'S SPLIT-SCREEN DASHBOARD MODAL */}
       {isSellerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-md animate-in fade-in duration-200 font-sans">
-          <div className="bg-paper rounded-3xl brutal-block w-full max-w-4xl h-150 overflow-hidden flex animate-in zoom-in-95 duration-200">
+          <div className="bg-paper brutal-block w-full max-w-4xl h-[85vh] md:h-[600px] flex flex-col md:flex-row animate-in zoom-in-95 duration-200 overflow-hidden relative">
+            {/* ✖️ GLOBAL CLOSE BUTTON */}
+            <button
+              onClick={() => setIsSellerModalOpen(false)}
+              className="absolute top-2 right-2 md:top-4 md:right-4 text-ink/60 hover:text-ink brutal-block-sm bg-paper-blue p-2 transition-transform hover:-translate-y-0.5 z-20"
+            >
+              <X className="w-4 h-4 md:w-5 md:h-5" />
+            </button>
+
             {/* ⬅️ LEFT SIDE: Anonymous Request List */}
-            <div className="w-1/3 bg-paper-blue border-r border-ink flex flex-col">
-              <div className="p-5 border-b border-ink bg-paper">
-                <h3 className="font-extrabold text-ink text-lg">
+            <div className="w-full md:w-1/3 h-[40%] md:h-full bg-paper-blue flex flex-col border-b-[length:var(--border-w)] md:border-b-0 md:border-r-[length:var(--border-w)] border-solid border-ink">
+              <div className="p-4 md:p-5 bg-paper border-b-[length:var(--border-w)] border-solid border-ink">
+                <h3 className="font-display font-bold text-ink text-xl md:text-2xl uppercase tracking-tight">
                   Active Offers
                 </h3>
-                <p className="text-xs text-slate-500 font-medium">
+                <p className="font-mono text-xs text-ink/60 font-medium mt-1">
                   {sellerOffers.length} students bargaining
                 </p>
               </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {sellerOffers.length === 0 ? (
-                  <p className="text-center text-ink/60 text-sm font-semibold mt-10">
-                    No offers yet.
+                  <p className="text-center text-ink/60 text-sm font-bold mt-10 font-mono">
+                    NO OFFERS YET
                   </p>
                 ) : (
                   sellerOffers.map((offer) => (
@@ -838,25 +846,29 @@ const ProductDetail = () => {
                         setIsCountering(false);
                         setCounterAmount("");
                       }}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${selectedOffer?._id === offer._id ? "border-blue-600 bg-blue-50 shadow-sm" : "border-transparent bg-paper hover:border-ink hover:shadow-sm"}`}
+                      className={`w-full text-left p-4 transition-all brutal-focus group ${
+                        selectedOffer?._id === offer._id 
+                          ? "brutal-block-sm bg-paper border-[length:var(--border-w)] border-solid border-ink" 
+                          : "bg-paper border-[length:var(--border-w)] border-solid border-transparent hover:border-ink hover:shadow-[3px_3px_0_0_var(--color-ink)]"
+                      }`}
                     >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-bold text-ink text-sm">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-mono font-bold text-ink text-sm">
                           Student #{offer._id.slice(-4).toUpperCase()}
                         </span>
                         <span
-                          className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${getOfferStatusClass(offer.status)}`}
+                          className={`text-[9px] font-bold uppercase px-2 py-1 tracking-wide brutal-block-sm ${getOfferStatusClass(offer.status)}`}
+                          style={{ boxShadow: "2px 2px 0 0 var(--color-ink)" }}
                         >
                           {getOfferStatusLabel(offer.status)}
                         </span>
                       </div>
-                      <p className="text-lg font-black text-blue-600">
+                      <p className={`font-mono text-2xl font-black ${selectedOffer?._id === offer._id ? "text-ledger-blue" : "text-ink"}`}>
                         ₹{offer.offeredPrice}
                       </p>
                       {offer.counterPrice ? (
-                        <p className="text-xs font-bold text-slate-500 mt-1">
-                          Your counter: ₹
-                          {offer.counterPrice.toLocaleString("en-IN")}
+                        <p className="font-mono text-xs font-bold text-ink/60 mt-1">
+                          Counter: ₹{offer.counterPrice.toLocaleString("en-IN")}
                         </p>
                       ) : null}
                     </button>
@@ -866,47 +878,41 @@ const ProductDetail = () => {
             </div>
 
             {/* ➡️ RIGHT SIDE: Live Action Panel */}
-            <div className="w-2/3 bg-paper flex flex-col relative">
-              <button
-                onClick={() => setIsSellerModalOpen(false)}
-                className="absolute top-5 right-5 text-ink/60 hover:text-ink bg-paper-blue/50 p-2 rounded-full"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
+            <div className="w-full md:w-2/3 h-[60%] md:h-full bg-paper flex flex-col relative overflow-y-auto">
               {selectedOffer ? (
-                <div className="p-10 flex flex-col h-full justify-center">
-                  <div className="mb-8">
-                    <p className="text-sm font-bold text-ink/60 uppercase tracking-wider mb-2">
+                <div className="p-5 md:p-10 flex flex-col h-full justify-center">
+                  <div className="mb-4 md:mb-8 mt-6 md:mt-0">
+                    <p className="font-mono text-xs md:text-sm font-bold text-ink/60 uppercase tracking-wider mb-1 md:mb-2">
                       Offer From
                     </p>
-                    <h2 className="text-3xl font-black text-ink">
+                    <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-black text-ink uppercase tracking-tight">
                       Student #{selectedOffer._id.slice(-4).toUpperCase()}
                     </h2>
                   </div>
 
-                  <div className="bg-paper-blue p-6 rounded-2xl border border-ink mb-8">
-                    <div className="flex items-start justify-between gap-4">
+                  <div className="bg-paper-blue p-4 md:p-6 brutal-block-sm mb-6 md:mb-8">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                       <div>
-                        <p className="text-sm font-bold text-slate-500 mb-1">
-                          They are offering:
+                        <p className="font-mono text-xs md:text-sm font-bold text-ink/60 uppercase mb-1 md:mb-2">
+                          They are offering
                         </p>
-                        <p className="text-6xl font-black text-green-500">
+                        <p className="font-mono text-4xl md:text-5xl lg:text-6xl font-black text-campus-green drop-shadow-md">
                           ₹{selectedOffer.offeredPrice}
                         </p>
                       </div>
                       <span
-                        className={`text-xs font-black uppercase px-3 py-1.5 rounded-full ${getOfferStatusClass(selectedOffer.status)}`}
+                        className={`text-[10px] md:text-xs font-black uppercase px-2 py-1 md:px-3 md:py-1.5 brutal-block-sm self-start ${getOfferStatusClass(selectedOffer.status)}`}
+                        style={{ boxShadow: "2px 2px 0 0 var(--color-ink)" }}
                       >
                         {getOfferStatusLabel(selectedOffer.status)}
                       </span>
                     </div>
                     {selectedOffer.counterPrice ? (
-                      <div className="mt-5 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
-                        <p className="text-xs font-black uppercase tracking-wider text-blue-500">
+                      <div className="mt-4 md:mt-6 brutal-block-sm bg-paper px-4 py-3 md:px-5 md:py-4">
+                        <p className="font-mono text-[10px] md:text-xs font-black uppercase tracking-wider text-ledger-blue mb-1">
                           Your Counter
                         </p>
-                        <p className="text-2xl font-black text-blue-700">
+                        <p className="font-mono text-2xl md:text-3xl font-black text-ledger-blue drop-shadow-sm">
                           ₹{selectedOffer.counterPrice.toLocaleString("en-IN")}
                         </p>
                       </div>
@@ -915,42 +921,41 @@ const ProductDetail = () => {
 
                   {/* THE ACTION BUTTONS */}
                   {!isCountering ? (
-                    <>
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-auto">
                       {selectedOffer.status === "pending" ? (
-                        <div className="grid grid-cols-1 gap-4 mb-4">
-                          <button
-                            onClick={() => handleRejectOffer(selectedOffer._id)}
-                            className="py-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-all text-lg border border-red-100"
-                          >
-                            Reject Offer
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleRejectOffer(selectedOffer._id)}
+                          className="flex-1 py-4 brutal-block bg-stamp-red text-paper font-bold uppercase tracking-wide transition-transform hover:-translate-y-1 text-lg"
+                        >
+                          Reject Offer
+                        </button>
                       ) : selectedOffer.status === "rejected" ? (
-                        <div className="mb-4 rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-center text-sm font-black uppercase tracking-wider text-rose-700">
+                        <div className="flex-1 py-4 brutal-block-sm bg-paper text-stamp-red font-bold uppercase tracking-wide text-center text-lg">
                           Rejected
                         </div>
                       ) : null}
+                      
                       {["pending", "rejected", "countered"].includes(
                         selectedOffer.status,
                       ) ? (
                         <button
                           onClick={() => setIsCountering(true)}
-                          className="py-4 w-full bg-ink hover:bg-ink text-paper font-bold rounded-xl shadow-lg transition-all text-lg"
+                          className="flex-1 py-3 md:py-4 brutal-block bg-ledger-blue text-paper font-bold uppercase tracking-wide transition-transform hover:-translate-y-1 text-base md:text-lg"
                         >
                           {selectedOffer.counterPrice
-                            ? "Update Counter Offer"
-                            : "Send Counter Offer"}
+                            ? "Update Counter"
+                            : "Counter Offer"}
                         </button>
                       ) : null}
-                    </>
+                    </div>
                   ) : (
                     /* COUNTER OFFER INPUT UI */
-                    <div className="animate-in fade-in zoom-in-95 duration-200">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    <div className="animate-in fade-in zoom-in-95 duration-200 mt-auto bg-paper-blue p-4 md:p-6 brutal-block-sm">
+                      <label className="block font-mono text-[10px] md:text-xs font-bold text-ink uppercase tracking-wider mb-2 md:mb-3">
                         Your Demand
                       </label>
-                      <div className="relative mb-4">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/60 font-bold text-lg">
+                      <div className="relative mb-5">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-ink/60 font-bold text-xl">
                           ₹
                         </span>
                         <input
@@ -959,19 +964,19 @@ const ProductDetail = () => {
                           value={counterAmount}
                           onChange={(e) => setCounterAmount(e.target.value)}
                           placeholder="e.g. 50"
-                          className="w-full pl-8 pr-4 py-3 bg-paper-blue border border-ink rounded-xl text-lg font-bold text-ink focus:ring-2 focus:ring-blue-500 outline-none"
+                          className="w-full pl-8 pr-3 py-3 md:pl-10 md:pr-4 md:py-4 brutal-block-sm bg-paper text-lg md:text-xl font-mono font-bold text-ink brutal-focus outline-none"
                         />
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
                         <button
                           onClick={() => setIsCountering(false)}
-                          className="flex-1 py-3 bg-paper border border-ink text-ink/80 rounded-xl font-bold hover:bg-paper-blue transition-colors"
+                          className="flex-1 py-3 md:py-4 brutal-block bg-paper text-ink font-bold uppercase tracking-wide hover:-translate-y-1 transition-transform text-sm md:text-base"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={() => handleCounterOffer(selectedOffer._id)}
-                          className="flex-1 py-3 bg-ledger-blue hover:bg-ledger-blue/90 text-paper rounded-xl font-bold shadow-md"
+                          className="flex-1 py-3 md:py-4 brutal-block bg-campus-green text-paper font-bold uppercase tracking-wide hover:-translate-y-1 transition-transform text-sm md:text-base"
                         >
                           Send Counter
                         </button>
@@ -980,13 +985,13 @@ const ProductDetail = () => {
                   )}
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-ink/60">
-                  <Tag className="w-16 h-16 mb-4 opacity-50" />
-                  <p className="text-lg font-semibold">
-                    Select an offer from the list
+                <div className="flex-1 flex flex-col items-center justify-center text-ink/60 bg-paper-blue/30 p-8 text-center">
+                  <Tag className="w-20 h-20 mb-6 opacity-20" />
+                  <p className="font-display text-3xl font-bold uppercase tracking-tight text-ink mb-3">
+                    Select an Offer
                   </p>
-                  <p className="text-sm">
-                    Review bids, reject, counter, or mark the product sold.
+                  <p className="font-mono text-sm text-ink/60">
+                    Review bids, reject, counter, or mark as sold.
                   </p>
                 </div>
               )}

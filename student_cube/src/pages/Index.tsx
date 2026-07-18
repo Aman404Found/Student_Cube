@@ -123,12 +123,12 @@ const Index = () => {
       link: "/buy?category=Electronics+%26+Gadgets",
     },
     {
-      name: "Accessories",
-      backendMatch: ["accessories", "accessory"],
+      name: "IOT and Robotics",
+      backendMatch: ["iot and robotics", "iot", "robotics", "accessories", "accessory"],
       count: 0,
       icon: Briefcase,
       bgColor: "bg-amber-500",
-      link: "/buy?category=Accessories",
+      link: "/buy?category=IOT+and+Robotics",
     },
     {
       name: "Others",

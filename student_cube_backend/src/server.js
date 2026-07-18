@@ -170,6 +170,7 @@ wss.on('connection', async (ws, req) => {
             offerId,
             message: {
               ...message.toObject(),
+              clientMessageId: payload.clientMessageId,
               deliveryStatus: 'sent',
             },
           });

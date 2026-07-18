@@ -521,7 +521,7 @@ const Chat = () => {
 
   useGSAP(() => {
     if (prefersReducedMotion()) return;
-    if (sidebarRef.current) {
+    if (sidebarRef.current && chats.length > 0) {
       gsap.fromTo(".chat-sidebar-item",
         { x: -20, opacity: 0 },
         {
@@ -655,6 +655,22 @@ const Chat = () => {
 
         if (payload.type === "message") {
           setMessages((prev) => {
+            // Deduplicate or replace optimistic messages using clientMessageId
+            if (payload.message?.clientMessageId) {
+              const existingIndex = prev.findIndex(
+                (msg) => msg._id === payload.message.clientMessageId
+              );
+              if (existingIndex !== -1) {
+                const newMessages = [...prev];
+                const isIncoming = getUserId(payload.message?.sender) !== currentUserId;
+                newMessages[existingIndex] = {
+                  ...payload.message,
+                  deliveryStatus: isIncoming ? "read" : payload.message?.deliveryStatus || "sent",
+                };
+                return newMessages;
+              }
+            }
+
             if (
               payload.message?._id &&
               prev.some((msg) => msg._id === payload.message._id)
@@ -815,12 +831,26 @@ const Chat = () => {
       return;
     }
 
+    const clientMessageId = `temp-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+    // Optimistically update the UI so it feels instantaneous (no 1-2 second delay)
+    const optimisticMessage: ChatMessage = {
+      _id: clientMessageId,
+      text: trimmedText,
+      kind,
+      sender: currentUserId,
+      createdAt: new Date().toISOString(),
+      deliveryStatus: "sent",
+    };
+    setMessages((prev) => [...prev, optimisticMessage]);
+
     wsRef.current.send(
       JSON.stringify({
         type: "message",
         offerId,
         text: trimmedText,
         kind,
+        clientMessageId,
       }),
     );
     setNewMessage("");

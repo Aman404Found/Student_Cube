@@ -522,7 +522,7 @@ const Sell = () => {
                   { value: "Aakash/Assignment Materials", label: "Aakash/Assignment Materials" },
                   { value: "Lab Coats & Uniforms", label: "Lab Coats & Uniforms" },
                   { value: "Electronics & Gadgets", label: "Electronics & Gadgets" },
-                  { value: "Accessories", label: "Accessories" },
+                  { value: "IOT and Robotics", label: "IOT and Robotics" },
                   { value: "Others", label: "Others" },
                 ]}
               />
