@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { EASE_SNAP, prefersReducedMotion, STAGGER_GAP } from "../lib/motion";
+import FloatingShapes from "./ui/FloatingShapes";
 
 export interface Stat {
   value: string | number;
@@ -115,8 +116,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({ stats }) => {
   return (
     <section
       ref={heroRef}
-      className="relative w-full min-h-[calc(100vh-80px)] flex flex-col items-center justify-center text-center px-4 pb-10 bg-paper"
+      className="relative w-full min-h-[calc(100vh-80px)] flex flex-col items-center justify-center text-center px-4 pt-16 md:pt-20 pb-10 bg-paper overflow-hidden"
     >
+      <FloatingShapes />
+
       {/* Trust Badge */}
       <div className="flex items-center gap-2.5 px-4 py-2 md:px-5 md:py-2.5 mb-8 md:mb-10 brutal-block-sm bg-paper-blue"
         style={{

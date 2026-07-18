@@ -37,10 +37,10 @@ const SafetyBanner: React.FC<SafetyBannerProps> = ({ isLoggedIn = false }) => {
 
         {/* Text Content */}
         <div className="text-center md:text-left z-10">
-          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-paper mb-3 md:mb-4 tracking-tight uppercase">
+          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#F0F0F0] mb-3 md:mb-4 tracking-tight uppercase">
             Your Safety is Our Priority
           </h2>
-          <p className="font-body text-paper/90 text-sm sm:text-base md:text-lg mb-6 leading-relaxed font-medium">
+          <p className="font-body text-[#F0F0F0]/90 text-sm sm:text-base md:text-lg mb-6 leading-relaxed font-medium">
             We strictly verify every student profile to keep our community 100%
             genuine and secure. No spam, no fake profiles-just safe and easy
             peer-to-peer trading.{" "}

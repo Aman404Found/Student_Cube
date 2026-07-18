@@ -301,7 +301,7 @@ const AdminReviewPanel = () => {
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 ) : (
-                  <div className="text-xs font-bold text-ink bg-paper-blue brutal-block-sm w-fit">
+                  <div className="text-xs font-bold text-ink  w-fit">
                     No Video Proof
                   </div>
                 )}
@@ -511,28 +511,28 @@ const AdminReviewPanel = () => {
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   ) : (
-                    <div className="text-sm font-bold text-ink bg-paper-blue brutal-block-sm w-fit">
+                    <div className="text-sm font-bold text-ink w-fit">
                       No Video Proof
                     </div>
                   )}
                 </section>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                   <button
                     disabled={actionLoading === selectedProduct._id}
                     onClick={() =>
                       handleStatusUpdate(selectedProduct._id, "approved")
                     }
-                    className="bg-campus-green hover:bg-campus-green/80 text-paper font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                    className="bg-campus-green brutal-block brutal-focus text-[#0A0A0A] font-body font-bold py-3 uppercase tracking-wide flex items-center justify-center gap-2 transition-transform duration-120 hover:translate-y-[-2px] disabled:opacity-60 disabled:hover:translate-y-0"
                   >
-                    <Check className="w-4 h-4" /> Approve
+                    <Check className="w-4 h-4" strokeWidth={3} /> Approve
                   </button>
                   <button
                     disabled={actionLoading === selectedProduct._id}
                     onClick={() => openRejectDialog(selectedProduct)}
-                    className="bg-stamp-red/10 text-stamp-red hover:bg-stamp-red hover:text-paper border border-stamp-red/20 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                    className="bg-stamp-red brutal-block brutal-focus text-[#0A0A0A] font-body font-bold py-3 uppercase tracking-wide flex items-center justify-center gap-2 transition-transform duration-120 hover:translate-y-[-2px] disabled:opacity-60 disabled:hover:translate-y-0"
                   >
-                    <X className="w-4 h-4" /> Reject
+                    <X className="w-4 h-4" strokeWidth={3} /> Reject
                   </button>
                 </div>
               </div>
@@ -568,7 +568,7 @@ const AdminReviewPanel = () => {
                   setRejectionProduct(null);
                   setRejectionMessage("");
                 }}
-                className="h-10 w-10 bg-paper-blue brutal-block-sm hover:bg-highlighter text-ink flex items-center justify-center transition-colors"
+                className="h-10 w-10 bg-paper-blue brutal-block-sm hover:bg-highlighter text-ink hover:text-[#0A0A0A] flex items-center justify-center transition-colors"
               >
                 <X className="w-5 h-5" strokeWidth={3} />
               </button>
@@ -593,19 +593,19 @@ const AdminReviewPanel = () => {
                   setRejectionProduct(null);
                   setRejectionMessage("");
                 }}
-                className="bg-paper-blue brutal-block-sm text-ink font-bold py-3 hover:bg-highlighter transition-colors"
+                className="bg-paper-blue brutal-block-sm text-ink font-body font-bold py-3 uppercase tracking-wide transition-transform duration-120 hover:translate-y-[-2px]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={actionLoading === rejectionProduct._id}
-                className="bg-stamp-red brutal-block-sm text-paper font-bold py-3 hover:bg-stamp-red/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                className="bg-stamp-red brutal-block-sm text-[#0A0A0A] font-body font-bold py-3 uppercase tracking-wide transition-transform duration-120 hover:translate-y-[-2px] disabled:opacity-60 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
               >
                 {actionLoading === rejectionProduct._id ? (
                   <BrutalLoader size="sm" />
                 ) : (
-                  <X className="w-4 h-4 text-paper" strokeWidth={3} />
+                  <X className="w-4 h-4 text-[#0A0A0A]" strokeWidth={3} />
                 )}
                 Reject Listing
               </button>

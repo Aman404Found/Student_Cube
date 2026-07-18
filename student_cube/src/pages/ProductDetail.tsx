@@ -82,12 +82,13 @@ const ProductDetail = () => {
   const isOwner = Boolean(
     currentUserId &&
     currentUserId ===
-      (typeof product?.seller === "string"
-        ? product?.seller
-        : product?.seller?._id),
+    (typeof product?.seller === "string"
+      ? product?.seller
+      : product?.seller?._id),
   );
 
   const [isImageExpanded, setIsImageExpanded] = useState(false);
+  const [isMarkSoldModalOpen, setIsMarkSoldModalOpen] = useState(false);
 
   // Buyer Offer Track
   const [myOffer, setMyOffer] = useState<OfferType | null>(null);
@@ -213,12 +214,12 @@ const ProductDetail = () => {
     }
   };
 
-  const handleMarkSold = async () => {
-    const confirm = window.confirm(
-      "Mark this product as sold? It will show as sold out for 24 hours and buyers will not be able to make offers.",
-    );
-    if (!confirm) return;
+  const handleMarkSold = () => {
+    setIsMarkSoldModalOpen(true);
+  };
 
+  const confirmMarkSold = async () => {
+    setIsMarkSoldModalOpen(false);
     setIsMarkingSold(true);
     try {
       const res = await api.put(`/products/${product?._id}/mark-sold`);
@@ -437,7 +438,7 @@ const ProductDetail = () => {
                   <img
                     src={getProductImageUrl(product.images[activeImage])}
                     alt={product.title || product.name}
-                    className="w-full h-full object-contain p-2 mix-blend-multiply"
+                    className="w-full h-full object-cover p-2 mix-blend-multiply"
                   />
                 </Lens>
               ) : (
@@ -448,7 +449,7 @@ const ProductDetail = () => {
 
               {/* Sold Out Overlay */}
               {product.status === "SOLD_OUT" && (
-                <div className="absolute inset-0 bg-ink/40 flex items-center justify-center backdrop-blur-[2px] pointer-events-none z-10">
+                <div className="absolute inset-0 bg-ink/40 flex items-center justify-center backdrop-blur-[2px] pointer-events-none z-30">
                   <span className="bg-stamp-red text-paper text-2xl uppercase font-black px-8 py-3 rounded-xl brutal-block rotate-[-15deg] tracking-widest border-4 border-ink">
                     SOLD OUT
                   </span>
@@ -456,13 +457,13 @@ const ProductDetail = () => {
               )}
 
               {/* Expand Icon Tooltip (Desktop Hover) */}
-              <div className="absolute top-4 right-4 bg-paper/80 backdrop-blur-sm p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm hidden sm:block">
-                <p className="text-xs font-bold text-slate-700">
+              <div className="absolute top-4 right-4 z-30 bg-paper/80 backdrop-blur-sm p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-sm hidden sm:block">
+                <p className="text-xs font-bold text-slate-400">
                   Click to expand
                 </p>
               </div>
 
-              <div className="absolute bottom-4 right-4 z-20 bg-ink text-paper p-2.5 rounded-full brutal-block-sm group-hover:scale-110 transition-transform">
+              <div className="absolute bottom-4 right-4 z-30 bg-ink text-paper p-2.5 rounded-full brutal-block-sm group-hover:scale-110 transition-transform pointer-events-none">
                 <Maximize className="w-5 h-5" />
               </div>
             </div>
@@ -475,16 +476,15 @@ const ProductDetail = () => {
                     <button
                       key={idx}
                       onClick={() => setActiveImage(idx)}
-                      className={`w-20 h-20 overflow-hidden border-[var(--border-w-sm)] border-solid shrink-0 transition-all bg-paper brutal-focus ${
-                        activeImage === idx
+                      className={`w-20 h-20 overflow-hidden border-[var(--border-w-sm)] border-solid shrink-0 transition-all bg-paper brutal-focus ${activeImage === idx
                           ? "border-ink shadow-[2px_2px_0px_0px_var(--color-ink)]"
                           : "border-ink/20 opacity-70 hover:opacity-100 hover:border-ink/50"
-                      }`}
+                        }`}
                     >
                       <img
                         src={getProductImageUrl(img)}
                         alt="Thumbnail"
-                        className="w-full h-full object-contain p-1"
+                        className="w-full h-full object-cover"
                       />
                     </button>
                   ))}
@@ -577,15 +577,15 @@ const ProductDetail = () => {
                     <p className="font-body text-lg font-bold text-ink truncate">
                       {isUnlocked
                         ? product.seller?.username ||
-                          product.seller?.name ||
-                          "Verified Student"
+                        product.seller?.name ||
+                        "Verified Student"
                         : "Hidden Student"}
                     </p>
                   </div>
                 </div>
 
                 {/* Views Time - Mobile par Horizontal & Desktop par Stacked */}
-                <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-1 text-xs text-ink/60 font-mono font-bold bg-paper-blue sm:bg-transparent p-3 sm:p-0 brutal-block-sm sm:border-none sm:shadow-none uppercase">
+                <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-1 text-xs text-ink/60 font-mono font-bold sm:bg-transparent p-3 sm:p-0 uppercase">
                   <p className="flex items-center">
                     <Eye className="w-3.5 h-3.5 mr-1.5 text-ink shrink-0" />
                     <span>{product.views || 0} Views</span>
@@ -1017,6 +1017,41 @@ const ProductDetail = () => {
               className="max-w-full max-h-full object-contain cursor-default select-none brutal-block"
               onClick={(e) => e.stopPropagation()} // Image pe click karne se band NAHI hoga
             />
+          </div>
+        </div>
+      )}
+
+      {/* Mark Sold Confirmation Modal */}
+      {isMarkSoldModalOpen && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-ink/60 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setIsMarkSoldModalOpen(false)}
+        >
+          <div
+            className="bg-paper brutal-block max-w-md w-full p-6 sm:p-8 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-display text-2xl font-black text-ink uppercase tracking-tight mb-4">
+              Mark as Sold?
+            </h3>
+            <p className="font-body text-ink/80 font-medium mb-8 leading-relaxed">
+              It will show as sold out for 24 hours and buyers will not be able to make offers.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={() => setIsMarkSoldModalOpen(false)}
+                className="flex-1 bg-paper-blue brutal-block-sm text-ink font-bold py-3 uppercase tracking-wide transition-transform duration-120 hover:translate-y-[-2px] hover:bg-highlighter"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmMarkSold}
+                disabled={isMarkingSold}
+                className="flex-1 bg-campus-green brutal-block-sm text-[#0A0A0A] font-bold py-3 uppercase tracking-wide transition-transform duration-120 hover:translate-y-[-2px] disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {isMarkingSold ? "Marking..." : "OK"}
+              </button>
+            </div>
           </div>
         </div>
       )}

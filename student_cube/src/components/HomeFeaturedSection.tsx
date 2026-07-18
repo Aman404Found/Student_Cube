@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { TrendingUp, ChevronRight, MapPin, Eye } from "lucide-react";
 import { getProductImageUrl } from "../utils/productImages";
@@ -24,7 +24,6 @@ interface ProductData {
 
 const HomeFeaturedSection = () => {
   const [featuredProducts, setFeaturedProducts] = useState<ProductData[]>([]);
-  const navigate = useNavigate();
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Product grid stagger entrance animation
@@ -114,7 +113,7 @@ const HomeFeaturedSection = () => {
             </BrutalCardImage>
 
             <BrutalCardContent className="flex-1 flex flex-col">
-              <div className="flex justify-between items-center mb-3">
+              <div className="flex justify-between items-center mb-3 gap-4">
                 <span className="font-mono text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide text-ink/60 px-2 py-1 bg-paper-blue"
                   style={{
                     border: "var(--border-w-sm) solid var(--color-ink)",

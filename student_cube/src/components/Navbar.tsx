@@ -244,7 +244,7 @@ const Navbar = () => {
 
           {!user ? (
             <Link to="/getstarted">
-              <button className="px-5 py-2 bg-signal-orange text-ink font-body font-bold text-sm uppercase tracking-wide brutal-focus cursor-pointer transition-all duration-120 hover:translate-y-[-2px]"
+              <button className="px-5 py-2 bg-signal-orange text-[#0A0A0A] font-body font-bold text-sm uppercase tracking-wide brutal-focus cursor-pointer transition-all duration-120 hover:translate-y-[-2px]"
                 style={{
                   border: "var(--border-w) solid var(--color-ink)",
                   boxShadow: "var(--shadow-off) var(--shadow-off) 0 0 var(--color-ink)",

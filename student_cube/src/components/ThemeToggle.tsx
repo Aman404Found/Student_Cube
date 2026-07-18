@@ -10,7 +10,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="brutal-block-sm p-2 bg-paper flex items-center justify-center hover:bg-highlighter/50 transition-colors brutal-focus"
+      className="brutal-block-sm p-2 bg-paper flex items-center justify-center hover:scale-105 transition-transform brutal-focus"
       title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
     >
       {isDark ? (

@@ -63,7 +63,7 @@ const BrutalBadge = forwardRef<HTMLSpanElement, BrutalBadgeProps>(
         ref={ref}
         className={cn(
           // Typography: mono uppercase per design.md §6
-          "font-mono font-semibold text-xs uppercase tracking-wide",
+          "font-mono font-semibold text-xs uppercase tracking-wide text-nowrap",
           // Layout
           "inline-flex items-center justify-center px-3 py-1",
           // Color per condition

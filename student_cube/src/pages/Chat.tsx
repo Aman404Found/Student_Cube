@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { 
-  EASE_SNAP, 
-  STAGGER_GAP, 
-  prefersReducedMotion 
+import {
+  EASE_SNAP,
+  STAGGER_GAP,
+  prefersReducedMotion
 } from "../lib/motion";
 import {
   ArrowDown,
@@ -25,7 +25,20 @@ import { getProductImageUrl } from "../utils/productImages";
 import type { ProductImageValue } from "../utils/productImages";
 import { BrutalLoader } from "../components/ui/brutal-loader";
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:5000/ws/chat";
+// Helper to fix malformed WS URLs from env vars
+const getWsUrl = () => {
+  let url = import.meta.env.VITE_WS_URL;
+  if (!url) return "ws://localhost:5000/ws/chat";
+
+  // Fix common copy-paste mistakes in env vars
+  url = url.replace("wss://https://", "wss://");
+  url = url.replace("ws://http://", "ws://");
+  url = url.replace(".onrender.com.onrender.com", ".onrender.com");
+
+  return url;
+};
+
+const WS_URL = getWsUrl();
 
 interface ChatUser {
   id?: string;
@@ -48,21 +61,21 @@ interface ChatMessage {
     offerId?: string;
     amount?: number;
     status?:
-      | "pending"
-      | "accepted"
-      | "rejected"
-      | "revoked"
-      | "countered"
-      | "on_hold"
-      | "failed";
+    | "pending"
+    | "accepted"
+    | "rejected"
+    | "revoked"
+    | "countered"
+    | "on_hold"
+    | "failed";
     currentStatus?:
-      | "pending"
-      | "accepted"
-      | "rejected"
-      | "revoked"
-      | "countered"
-      | "on_hold"
-      | "failed";
+    | "pending"
+    | "accepted"
+    | "rejected"
+    | "revoked"
+    | "countered"
+    | "on_hold"
+    | "failed";
     buyer?: string | ChatUser;
     seller?: string | ChatUser;
   };
@@ -369,7 +382,7 @@ const MessagesPane = ({
             const showDateSeparator =
               idx === 0 ||
               getMessageDateKey(msg.createdAt) !==
-                getMessageDateKey(messages[idx - 1]?.createdAt);
+              getMessageDateKey(messages[idx - 1]?.createdAt);
 
             // Centered plain-text status line, e.g. "❌ Offer of ₹18,000 declined."
             if (msg.kind === "SYSTEM") {
@@ -417,11 +430,10 @@ const MessagesPane = ({
                     renderOfferCard(msg, isLatestOfferActivity(idx))
                   ) : (
                     <div
-                      className={`max-w-[75%] px-4 py-3 brutal-block-sm font-body font-medium text-sm md:text-base ${
-                        isMe
+                      className={`max-w-[75%] px-4 py-3 brutal-block-sm font-body font-medium text-sm md:text-base ${isMe
                           ? "bg-signal-orange text-paper"
                           : "bg-paper text-ink"
-                      }`}
+                        }`}
                     >
                       <div
                         className={`font-mono text-[10px] uppercase font-bold mb-1.5 ${isMe ? "text-paper" : "text-ledger-blue"}`}
@@ -437,9 +449,9 @@ const MessagesPane = ({
                         <span>
                           {msg.createdAt
                             ? new Date(msg.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
                             : "Just now"}
                         </span>
                         {isMe && (
@@ -510,7 +522,7 @@ const Chat = () => {
   useGSAP(() => {
     if (prefersReducedMotion()) return;
     if (sidebarRef.current) {
-      gsap.fromTo(".chat-sidebar-item", 
+      gsap.fromTo(".chat-sidebar-item",
         { x: -20, opacity: 0 },
         {
           x: 0,
@@ -522,7 +534,7 @@ const Chat = () => {
       );
     }
     if (chatRef.current) {
-      gsap.fromTo(chatRef.current, 
+      gsap.fromTo(chatRef.current,
         { opacity: 0 },
         {
           opacity: 1,
@@ -780,9 +792,10 @@ const Chat = () => {
           toast.error(response.error.description || "Payment failed");
         },
       );
-    } catch (error) {
-      toast.error("Something went wrong!");
-      console.error(error);
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || "Something went wrong!";
+      toast.error(`Payment Error: ${errorMsg}`);
+      console.error("Payment Error details:", error);
     }
   };
 
@@ -960,7 +973,7 @@ const Chat = () => {
       className={`${offerId ? "hidden md:flex" : "flex"} w-full md:w-80 lg:w-96 shrink-0 flex-col border-r-[var(--border-w)] border-ink bg-paper z-20 relative`}
     >
       <div className="px-6 py-5 border-b-[var(--border-w)] border-ink shrink-0 bg-highlighter">
-        <h1 className="text-2xl font-display font-black uppercase tracking-tight text-ink">Messages</h1>
+        <h1 className="text-2xl font-display font-black uppercase tracking-tight text-[#0A0A0A]">Messages</h1>
       </div>
       <div className="flex-1 overflow-y-auto bg-paper">
         {isLoading && chats.length === 0 ? (
@@ -979,9 +992,8 @@ const Chat = () => {
                 <Link
                   key={chat.chatId}
                   to={`/chat/${chat.offerId}`}
-                  className={`chat-sidebar-item relative flex items-center gap-4 p-4 md:p-5 transition-colors border-b-[var(--border-w-sm)] border-ink/10 ${
-                    isActive ? "bg-paper-blue" : "bg-paper hover:bg-highlighter/20"
-                  }`}
+                  className={`chat-sidebar-item relative flex items-center gap-4 p-4 md:p-5 transition-colors border-b-[var(--border-w-sm)] border-ink/10 ${isActive ? "bg-paper-blue" : "bg-paper hover:bg-highlighter/20"
+                    }`}
                 >
                   {chat.hasUnread && (
                     <span className="absolute right-4 top-4 w-3 h-3 bg-stamp-red border-[2px] border-ink" style={{ borderRadius: 'var(--radius)' }} />
@@ -1047,170 +1059,170 @@ const Chat = () => {
     <div className="h-[calc(100vh-80px)] overflow-hidden bg-paper flex w-full relative">
       {sidebar}
       <div ref={chatRef} className="flex-1 flex flex-col min-w-0 bg-paper">
-      <div className="bg-paper px-4 md:px-6 py-4 flex items-center gap-4 border-b-[var(--border-w)] border-ink shadow-none z-10 shrink-0">
-        <button
-          onClick={() => navigate("/chat")}
-          className="p-3 bg-paper border-[var(--border-w-sm)] border-ink hover:bg-highlighter brutal-block-sm transition-colors md:hidden shrink-0"
-        >
-          <ArrowLeft className="w-5 h-5 text-ink" strokeWidth={2.5} />
-        </button>
-        <div className="flex items-center gap-4 min-w-0 flex-1">
-          <div className="w-12 h-12 bg-ledger-blue border-[var(--border-w)] border-ink flex items-center justify-center text-paper shrink-0" style={{ borderRadius: 'var(--radius)' }}>
-            <User className="w-6 h-6" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="font-display text-xl uppercase font-bold tracking-tight text-ink truncate">
-              {chatTitle}
-            </h2>
-            <p className="font-mono text-xs font-bold text-ink truncate uppercase mt-0.5">
-              {canSendCustom ? getUserName(otherUser) : "Hidden Student"}
-            </p>
-          </div>
-        </div>
-        {chatProduct?._id && (
-          <Link
-            to={`/product/${chatProduct._id}`}
-            className="shrink-0 brutal-block-sm bg-paper px-4 py-2 font-display text-sm font-bold uppercase tracking-tight text-ink hover:bg-paper-blue transition-colors"
+        <div className="bg-paper px-4 md:px-6 py-4 flex items-center gap-4 border-b-[var(--border-w)] border-ink shadow-none z-10 shrink-0">
+          <button
+            onClick={() => navigate("/chat")}
+            className="p-3 bg-paper border-[var(--border-w-sm)] border-ink hover:bg-highlighter brutal-block-sm transition-colors md:hidden shrink-0"
           >
-            Product Info
-          </Link>
-        )}
-      </div>
-
-      {!canSendCustom && lockedMessage && (
-        <div className="bg-stamp-red border-b-[var(--border-w)] border-ink px-4 md:px-6 py-4 text-sm text-paper font-bold font-body flex items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3 min-w-0 text-paper">
-            <Lock className="w-5 h-5 shrink-0" strokeWidth={2.5} />
-            <span className="truncate">{lockedMessage}</span>
+            <ArrowLeft className="w-5 h-5 text-ink" strokeWidth={2.5} />
+          </button>
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className="w-12 h-12 bg-ledger-blue border-[var(--border-w)] border-ink flex items-center justify-center text-paper shrink-0" style={{ borderRadius: 'var(--radius)' }}>
+              <User className="w-6 h-6" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-display text-xl uppercase font-bold tracking-tight text-ink truncate">
+                {chatTitle}
+              </h2>
+              <p className="font-mono text-xs font-bold text-ink truncate uppercase mt-0.5">
+                {canSendCustom ? getUserName(otherUser) : "Hidden Student"}
+              </p>
+            </div>
           </div>
-
-          {currentUserId !== chatSellerId && (
-            <button
-              onClick={handleUnlockPayment}
-              className="bg-paper text-stamp-red hover:bg-paper-blue px-4 py-2 brutal-block-sm font-display uppercase font-bold text-sm transition-colors shrink-0 whitespace-nowrap"
+          {chatProduct?._id && (
+            <Link
+              to={`/product/${chatProduct._id}`}
+              className="shrink-0 brutal-block-sm bg-paper px-4 py-2 font-display text-sm font-bold uppercase tracking-tight text-ink hover:bg-paper-blue transition-colors"
             >
-              Pay ₹9
-            </button>
+              Product Info
+            </Link>
           )}
         </div>
-      )}
 
-      {lifecycle?.message && (
-        <div className="bg-paper-blue border-b border-ink px-4 py-3 text-sm text-ink font-semibold shrink-0">
-          <div>{lifecycle.message}</div>
-          {lifecycle.deleteAfter && (
-            <div className="text-xs text-ink/70 mt-1">
-              Scheduled deletion:{" "}
-              {new Date(lifecycle.deleteAfter).toLocaleString()}
+        {!canSendCustom && lockedMessage && (
+          <div className="bg-stamp-red border-b-[var(--border-w)] border-ink px-4 md:px-6 py-4 text-sm text-paper font-bold font-body flex items-center justify-between gap-4 shrink-0">
+            <div className="flex items-center gap-3 min-w-0 text-paper">
+              <Lock className="w-5 h-5 shrink-0" strokeWidth={2.5} />
+              <span className="truncate">{lockedMessage}</span>
             </div>
-          )}
-        </div>
-      )}
 
-      <MessagesPane
-        key={offerId}
-        isLoading={isLoading}
-        messages={messages}
-        currentUserId={currentUserId}
-        canSendCustom={canSendCustom}
-        chatProduct={chatProduct}
-        chatSellerId={chatSellerId}
-        offerActionLoading={offerActionLoading}
-        onOfferAction={handleOfferCardAction}
-        offerIdFallback={offerId || ""}
-      />
-
-      <div className="bg-paper p-4 md:p-6 border-t-[var(--border-w)] border-ink shrink-0 z-10">
-        {!canSendCustom && prePaymentMessages.length > 0 && (
-          <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
-            {prePaymentMessages.map((text) => (
+            {currentUserId !== chatSellerId && (
               <button
-                key={text}
-                type="button"
-                onClick={() => handleQuickMessage(text)}
-                className="shrink-0 brutal-block-sm bg-paper-blue px-4 py-2 font-body font-bold text-sm text-ink hover:bg-highlighter transition-colors whitespace-nowrap"
+                onClick={handleUnlockPayment}
+                className="bg-paper text-stamp-red hover:bg-paper-blue px-4 py-2 brutal-block-sm font-display uppercase font-bold text-sm transition-colors shrink-0 whitespace-nowrap"
               >
-                {text}
+                Pay ₹9
               </button>
-            ))}
+            )}
           </div>
         )}
 
-        {isOfferBoxOpen && (
-          <form
-            onSubmit={handleChatOfferSubmit}
-            className="mb-4 flex flex-wrap sm:flex-nowrap gap-3 bg-paper p-4 brutal-block border-[var(--border-w)] border-ink"
-          >
-            <div className="relative flex-1 min-w-[200px]">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-ink">
-                ₹
-              </span>
-              <input
-                type="number"
-                value={chatOfferPrice}
-                max={chatProduct?.price}
-                onChange={(event) => setChatOfferPrice(event.target.value)}
-                placeholder={
-                  chatSellerId === currentUserId
-                    ? "Counter amount"
-                    : "Offer amount"
-                }
-                className="w-full bg-paper brutal-block-sm py-3 pl-8 pr-4 font-mono font-bold text-ink outline-none focus:ring-2 focus:ring-ledger-blue focus:border-transparent transition-all"
-              />
-            </div>
-            <div className="flex gap-3 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOfferBoxOpen(false);
-                  setChatOfferPrice("");
-                }}
-                className="flex-1 sm:flex-none brutal-block-sm bg-paper px-6 py-3 font-display uppercase font-bold text-sm text-ink hover:bg-paper-blue transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmittingChatOffer}
-                className="flex-1 sm:flex-none brutal-block-sm bg-ledger-blue px-6 py-3 font-display uppercase font-bold text-sm text-paper hover:bg-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmittingChatOffer ? "Sending" : "Send"}
-              </button>
-            </div>
-          </form>
+        {lifecycle?.message && (
+          <div className="bg-paper-blue border-b border-ink px-4 py-3 text-sm text-ink font-semibold shrink-0">
+            <div>{lifecycle.message}</div>
+            {lifecycle.deleteAfter && (
+              <div className="text-xs text-ink/70 mt-1">
+                Scheduled deletion:{" "}
+                {new Date(lifecycle.deleteAfter).toLocaleString()}
+              </div>
+            )}
+          </div>
         )}
 
-        <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-          <button
-            type="button"
-            disabled={!canSendCustom}
-            title="Attach image (coming soon)"
-            onClick={() => toast("Image attachments aren't wired up yet.")}
-            className="w-12 h-12 md:w-14 md:h-14 shrink-0 flex items-center justify-center brutal-block-sm bg-paper text-ink hover:bg-highlighter disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            <ImageIcon className="w-5 h-5 md:w-6 md:h-6" />
-          </button>
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={
-              canSendCustom
-                ? "Type a message..."
-                : "Full chat unlocks after payment verification"
-            }
-            disabled={!canSendCustom}
-            className="flex-1 min-w-0 bg-paper brutal-block-sm px-4 md:px-5 py-3 md:py-4 font-body font-medium text-ink outline-none focus:ring-2 focus:ring-ledger-blue focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <button
-            type="submit"
-            disabled={!newMessage.trim() || !canSendCustom}
-            className="w-12 h-12 md:w-14 md:h-14 shrink-0 brutal-block-sm bg-signal-orange hover:bg-highlighter disabled:opacity-50 disabled:hover:bg-signal-orange text-ink rounded-none flex items-center justify-center transition-colors"
-          >
-            <Send className="w-5 h-5 md:w-6 md:h-6 ml-1" strokeWidth={2.5} />
-          </button>
-        </form>
-      </div>
+        <MessagesPane
+          key={offerId}
+          isLoading={isLoading}
+          messages={messages}
+          currentUserId={currentUserId}
+          canSendCustom={canSendCustom}
+          chatProduct={chatProduct}
+          chatSellerId={chatSellerId}
+          offerActionLoading={offerActionLoading}
+          onOfferAction={handleOfferCardAction}
+          offerIdFallback={offerId || ""}
+        />
+
+        <div className="bg-paper p-4 md:p-6 border-t-[var(--border-w)] border-ink shrink-0 z-10">
+          {!canSendCustom && prePaymentMessages.length > 0 && (
+            <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
+              {prePaymentMessages.map((text) => (
+                <button
+                  key={text}
+                  type="button"
+                  onClick={() => handleQuickMessage(text)}
+                  className="shrink-0 brutal-block-sm bg-paper-blue px-4 py-2 font-body font-bold text-sm text-ink hover:bg-highlighter transition-colors whitespace-nowrap"
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {isOfferBoxOpen && (
+            <form
+              onSubmit={handleChatOfferSubmit}
+              className="mb-4 flex flex-wrap sm:flex-nowrap gap-3 bg-paper p-4 brutal-block border-[var(--border-w)] border-ink"
+            >
+              <div className="relative flex-1 min-w-[200px]">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-ink">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  value={chatOfferPrice}
+                  max={chatProduct?.price}
+                  onChange={(event) => setChatOfferPrice(event.target.value)}
+                  placeholder={
+                    chatSellerId === currentUserId
+                      ? "Counter amount"
+                      : "Offer amount"
+                  }
+                  className="w-full bg-paper brutal-block-sm py-3 pl-8 pr-4 font-mono font-bold text-ink outline-none focus:ring-2 focus:ring-ledger-blue focus:border-transparent transition-all"
+                />
+              </div>
+              <div className="flex gap-3 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOfferBoxOpen(false);
+                    setChatOfferPrice("");
+                  }}
+                  className="flex-1 sm:flex-none brutal-block-sm bg-paper px-6 py-3 font-display uppercase font-bold text-sm text-ink hover:bg-paper-blue transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingChatOffer}
+                  className="flex-1 sm:flex-none brutal-block-sm bg-ledger-blue px-6 py-3 font-display uppercase font-bold text-sm text-paper hover:bg-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmittingChatOffer ? "Sending" : "Send"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          <form onSubmit={handleSendMessage} className="flex items-center gap-3">
+            <button
+              type="button"
+              disabled={!canSendCustom}
+              title="Attach image (coming soon)"
+              onClick={() => toast("Image attachments aren't wired up yet.")}
+              className="w-12 h-12 md:w-14 md:h-14 shrink-0 flex items-center justify-center brutal-block-sm bg-paper text-ink hover:bg-highlighter disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <ImageIcon className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder={
+                canSendCustom
+                  ? "Type a message..."
+                  : "Full chat unlocks after payment verification"
+              }
+              disabled={!canSendCustom}
+              className="flex-1 min-w-0 bg-paper brutal-block-sm px-4 md:px-5 py-3 md:py-4 font-body font-medium text-ink outline-none focus:ring-2 focus:ring-ledger-blue focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            <button
+              type="submit"
+              disabled={!newMessage.trim() || !canSendCustom}
+              className="w-12 h-12 md:w-14 md:h-14 shrink-0 brutal-block-sm bg-signal-orange hover:bg-highlighter disabled:opacity-50 disabled:hover:bg-signal-orange text-ink rounded-none flex items-center justify-center transition-colors"
+            >
+              <Send className="w-5 h-5 md:w-6 md:h-6 ml-1" strokeWidth={2.5} />
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

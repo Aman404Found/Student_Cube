@@ -13,6 +13,7 @@ import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { BrutalButton } from "../components/ui/brutal-button";
 import { BrutalLoader } from "../components/ui/brutal-loader";
+import CustomSelect from "../components/ui/CustomSelect";
 
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -34,6 +35,37 @@ interface UploadedImage {
   bytes: number;
   format: string;
 }
+
+const ImagePreview = ({ file, onRemove }: { file: File; onRemove: () => void }) => {
+  const [url, setUrl] = useState<string>("");
+
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return (
+    <div className="w-32 h-32 bg-paper brutal-block-sm overflow-hidden relative group p-1">
+      <div className="w-full h-full border border-ink relative overflow-hidden">
+        {url && (
+          <img
+            src={url}
+            alt="Upload preview"
+            className="w-full h-full object-cover"
+          />
+        )}
+        <button
+          type="button"
+          onClick={onRemove}
+          className="absolute top-1 right-1 bg-stamp-red text-paper p-1 opacity-0 group-hover:opacity-100 transition-opacity border-2 border-ink shadow-[2px_2px_0px_0px_var(--color-ink)] hover:translate-y-px hover:shadow-[1px_1px_0px_0px_var(--color-ink)]"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const Sell = () => {
   const navigate = useNavigate();
@@ -402,27 +434,13 @@ const Sell = () => {
             </p>
             <div className="flex gap-4 flex-wrap">
               {photos.map((photo, index) => (
-                <div
+                <ImagePreview
                   key={index}
-                  className="w-32 h-32 bg-paper brutal-block-sm overflow-hidden relative group p-1"
-                >
-                  <div className="w-full h-full border border-ink relative overflow-hidden">
-                    <img
-                      src={URL.createObjectURL(photo)}
-                      alt={`Upload ${index}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPhotos(photos.filter((_, i) => i !== index))
-                      }
-                      className="absolute top-1 right-1 bg-stamp-red text-paper p-1 opacity-0 group-hover:opacity-100 transition-opacity border-2 border-ink shadow-[2px_2px_0px_0px_var(--color-ink)] hover:translate-y-px hover:shadow-[1px_1px_0px_0px_var(--color-ink)]"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+                  file={photo}
+                  onRemove={() =>
+                    setPhotos(photos.filter((_, i) => i !== index))
+                  }
+                />
               ))}
 
               {photos.length < 4 && (
@@ -493,33 +511,21 @@ const Sell = () => {
               <label className="block font-mono text-xs font-bold text-ink mb-2 uppercase tracking-widest">
                 Category <span className="text-stamp-red">*</span>
               </label>
-              <div className="relative">
-                <select
-                  required
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 bg-paper border-[var(--border-w)] border-ink font-body font-medium text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper appearance-none cursor-pointer"
-                >
-                  <option value="">Select category</option>
-                  <option value="Books & Notes">Books & Notes</option>
-                  <option value="Calculators">Calculators</option>
-                  <option value="Drafters & Instruments">
-                    Drafters & Instruments
-                  </option>
-                  <option value="Aakash/Assignment Materials">
-                    Aakash/Assignment Materials
-                  </option>
-                  <option value="Lab Coats & Uniforms">
-                    Lab Coats & Uniforms
-                  </option>
-                  <option value="Electronics & Gadgets">
-                    Electronics & Gadgets
-                  </option>
-                  <option value="Accessories">Accessories</option>
-                  <option value="Others">Others</option>
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-ink"></div>
-              </div>
+              <CustomSelect
+                value={category}
+                onChange={setCategory}
+                placeholder="Select category"
+                options={[
+                  { value: "Books & Notes", label: "Books & Notes" },
+                  { value: "Calculators", label: "Calculators" },
+                  { value: "Drafters & Instruments", label: "Drafters & Instruments" },
+                  { value: "Aakash/Assignment Materials", label: "Aakash/Assignment Materials" },
+                  { value: "Lab Coats & Uniforms", label: "Lab Coats & Uniforms" },
+                  { value: "Electronics & Gadgets", label: "Electronics & Gadgets" },
+                  { value: "Accessories", label: "Accessories" },
+                  { value: "Others", label: "Others" },
+                ]}
+              />
             </div>
             {user?.college && (
               <p className="mt-2 font-mono text-[10px] font-bold text-ink/60 uppercase">
@@ -552,21 +558,17 @@ const Sell = () => {
               <label className="block font-mono text-xs font-bold text-ink mb-2 uppercase tracking-widest">
                 Condition <span className="text-stamp-red">*</span>
               </label>
-              <div className="relative">
-                <select
-                  required
-                  value={condition}
-                  onChange={(e) => setCondition(e.target.value)}
-                  className="w-full px-4 py-3 bg-paper border-[var(--border-w)] border-ink font-body font-medium text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper appearance-none cursor-pointer"
-                >
-                  <option value="">Select condition</option>
-                  <option value="New">New</option>
-                  <option value="Like New">Like New</option>
-                  <option value="Good">Good</option>
-                  <option value="Fair">Fair</option>
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-ink"></div>
-              </div>
+              <CustomSelect
+                value={condition}
+                onChange={setCondition}
+                placeholder="Select condition"
+                options={[
+                  { value: "New", label: "New" },
+                  { value: "Like New", label: "Like New" },
+                  { value: "Good", label: "Good" },
+                  { value: "Fair", label: "Fair" },
+                ]}
+              />
             </div>
           </div>
 
@@ -580,7 +582,7 @@ const Sell = () => {
                 <span className="text-ink/50 font-medium lowercase">(optional)</span>
               </label>
               <div className="relative flex">
-                <span className="flex items-center justify-center w-12 bg-paper-blue border-[var(--border-w)] border-r-0 border-ink text-ink font-mono font-bold text-lg">
+                <span className="flex items-center justify-center w-12 bg-ledger-blue border-[var(--border-w)] border-r-0 border-ink text-paper font-mono font-bold text-lg">
                   ₹
                 </span>
                 <input
@@ -649,13 +651,13 @@ const Sell = () => {
           </div>
 
           {/* Info Alert (Updated logic to ₹9) */}
-          <div className="bg-highlighter brutal-block-sm p-4 flex gap-3 items-start border-[var(--border-w-sm)]">
-            <Info className="w-5 h-5 text-ink shrink-0 mt-0.5" />
+          <div className="bg-teal-200 p-4 flex gap-3 items-start ">
+            <Info className="w-5 h-5 text-[#0A0A0A] shrink-0 mt-0.5" />
             <div>
-              <p className="font-mono text-sm font-bold text-ink mb-1 uppercase tracking-widest">
+              <p className="font-mono text-sm font-bold text-[#0A0A0A] mb-1 uppercase tracking-widest">
                 Listing Fee: ₹9
               </p>
-              <p className="font-body text-xs font-medium text-ink/80">
+              <p className="font-body text-xs font-medium text-[#0A0A0A]/80">
                 Pay ₹9 to publish your product and get it in front of buyers
                 instantly.{" "}
                 {canUsePromoCode && (

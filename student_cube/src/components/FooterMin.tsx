@@ -121,7 +121,7 @@ const Footer = () => {
                 style={{
                   border: "var(--border-w-sm) solid var(--color-ink)",
                   borderRadius: "var(--brutal-radius)",
-                  boxShadow: "2px 2px 0 0 var(--color-ink)",
+                  boxShadow: "2px 2px 0 0 var(--color-shadow)",
                 }}
               >
                 <svg
@@ -148,7 +148,7 @@ const Footer = () => {
                 style={{
                   border: "var(--border-w-sm) solid var(--color-ink)",
                   borderRadius: "var(--brutal-radius)",
-                  boxShadow: "2px 2px 0 0 var(--color-ink)",
+                  boxShadow: "2px 2px 0 0 var(--color-shadow)",
                 }}
               >
                 <svg
@@ -175,7 +175,7 @@ const Footer = () => {
                 style={{
                   border: "var(--border-w-sm) solid var(--color-ink)",
                   borderRadius: "var(--brutal-radius)",
-                  boxShadow: "2px 2px 0 0 var(--color-ink)",
+                  boxShadow: "2px 2px 0 0 var(--color-shadow)",
                 }}
               >
                 <svg
@@ -202,7 +202,7 @@ const Footer = () => {
                 style={{
                   border: "var(--border-w-sm) solid var(--color-ink)",
                   borderRadius: "var(--brutal-radius)",
-                  boxShadow: "2px 2px 0 0 var(--color-ink)",
+                  boxShadow: "2px 2px 0 0 var(--color-shadow)",
                 }}
               >
                 <svg

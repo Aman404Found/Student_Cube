@@ -1,7 +1,20 @@
 import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:5000/ws/chat';
+// Helper to fix malformed WS URLs from env vars
+const getWsUrl = () => {
+  let url = import.meta.env.VITE_WS_URL;
+  if (!url) return "ws://localhost:5000/ws/chat";
+  
+  // Fix common copy-paste mistakes in env vars
+  url = url.replace("wss://https://", "wss://");
+  url = url.replace("ws://http://", "ws://");
+  url = url.replace(".onrender.com.onrender.com", ".onrender.com");
+  
+  return url;
+};
+
+const WS_URL = getWsUrl();
 
 const RealtimeBridge = () => {
   const { token } = useAuth();
@@ -32,13 +45,12 @@ const RealtimeBridge = () => {
 
     return () => {
       isIntentionalClose = true;
-      ws.onopen = null;
       ws.onmessage = null;
-      ws.onerror = null;
-      ws.onclose = null;
 
-      if (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN) {
-        window.setTimeout(() => ws.close(), 0);
+      if (ws.readyState === 1) { // OPEN
+        ws.close();
+      } else if (ws.readyState === 0) { // CONNECTING
+        ws.onopen = () => ws.close();
       }
     };
   }, [token]);

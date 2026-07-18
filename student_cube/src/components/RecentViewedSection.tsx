@@ -39,10 +39,10 @@ const RecentViewedSection = () => {
 
   // Product grid stagger entrance animation
   useGSAP(() => {
-    if (prefersReducedMotion() || recentlyViewed.length === 0) return;
+    if (prefersReducedMotion() || recentlyViewed.length === 0 || !gridRef.current || gridRef.current.children.length === 0) return;
 
     gsap.fromTo(
-      gridRef.current?.children || [],
+      gridRef.current.children,
       { y: 20, opacity: 0 },
       { 
         y: 0, 
@@ -57,7 +57,7 @@ const RecentViewedSection = () => {
         }
       }
     );
-  }, { scope: gridRef, dependencies: [recentlyViewed] });
+  }, { dependencies: [recentlyViewed] });
 
   useEffect(() => {
     let isMounted = true;
@@ -145,7 +145,7 @@ const RecentViewedSection = () => {
             to={`/product/${prod._id}`}
             className="group flex flex-col h-full"
           >
-            <BrutalCard noHover>
+            <BrutalCard noHover className="flex flex-col h-full">
               <BrutalCardImage className="relative h-48 bg-paper-blue">
                 {prod.images && prod.images.length > 0 ? (
                   <img
@@ -160,22 +160,15 @@ const RecentViewedSection = () => {
                 )}
 
                 {/* VIEWED Badge */}
-                <div className="absolute top-3 left-3 brutal-block-sm bg-ink text-paper"
-                  style={{
-                    border: "var(--border-w-sm) solid var(--color-ink)",
-                    borderRadius: "var(--brutal-radius)",
-                  }}
-                >
-                  <span className="font-mono text-[10px] font-semibold uppercase tracking-wide px-2 py-1">
-                    VIEWED
-                  </span>
+                <div className="absolute top-3 left-3">
+                  <BrutalBadge condition="top-viewed">Viewed</BrutalBadge>
                 </div>
               </BrutalCardImage>
 
               <BrutalCardContent className="flex flex-col grow">
 
                 {/* Tags Row */}
-                <div className="flex justify-between items-center mb-3">
+                <div className="flex justify-between items-center mb-3 gap-4">
                   <span className="font-mono text-[10px] font-semibold uppercase tracking-wide text-ink/60 px-2 py-1 bg-paper-blue"
                     style={{
                       border: "var(--border-w-sm) solid var(--color-ink)",
@@ -202,7 +195,7 @@ const RecentViewedSection = () => {
                       borderRadius: "var(--brutal-radius)",
                     }}
                   >
-                    S
+                    U
                   </div>
                   <span className="font-body text-sm font-bold text-ink/60">
                     Unknown User

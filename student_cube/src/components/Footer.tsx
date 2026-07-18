@@ -86,7 +86,7 @@ const Footer = () => {
               className="w-10 h-10 bg-campus-green flex items-center justify-center text-paper brutal-focus transition-all duration-120 hover:translate-y-[-2px] hover:translate-x-[-2px]"
               style={{
                 border: "var(--border-w-sm) solid var(--color-ink)",
-                boxShadow: "3px 3px 0 0 var(--color-ink)",
+                boxShadow: "3px 3px 0 0 var(--color-shadow)",
                 borderRadius: "var(--brutal-radius)",
               }}
             >
@@ -108,7 +108,7 @@ const Footer = () => {
               className="w-10 h-10 bg-ledger-blue flex items-center justify-center text-paper brutal-focus transition-all duration-120 hover:translate-y-[-2px] hover:translate-x-[-2px]"
               style={{
                 border: "var(--border-w-sm) solid var(--color-ink)",
-                boxShadow: "3px 3px 0 0 var(--color-ink)",
+                boxShadow: "3px 3px 0 0 var(--color-shadow)",
                 borderRadius: "var(--brutal-radius)",
               }}
             >
@@ -130,7 +130,7 @@ const Footer = () => {
               className="w-10 h-10 bg-paper flex items-center justify-center text-ink brutal-focus transition-all duration-120 hover:translate-y-[-2px] hover:translate-x-[-2px]"
               style={{
                 border: "var(--border-w-sm) solid var(--color-ink)",
-                boxShadow: "3px 3px 0 0 var(--color-ink)",
+                boxShadow: "3px 3px 0 0 var(--color-shadow)",
                 borderRadius: "var(--brutal-radius)",
               }}
             >
@@ -152,7 +152,7 @@ const Footer = () => {
               className="w-10 h-10 bg-stamp-red flex items-center justify-center text-paper brutal-focus transition-all duration-120 hover:translate-y-[-2px] hover:translate-x-[-2px]"
               style={{
                 border: "var(--border-w-sm) solid var(--color-ink)",
-                boxShadow: "3px 3px 0 0 var(--color-ink)",
+                boxShadow: "3px 3px 0 0 var(--color-shadow)",
                 borderRadius: "var(--brutal-radius)",
               }}
             >

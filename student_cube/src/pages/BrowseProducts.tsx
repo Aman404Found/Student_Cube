@@ -20,6 +20,7 @@ import { BrutalCard, BrutalCardImage, BrutalCardContent, BrutalCardFooter } from
 import { BrutalBadge } from "../components/ui/brutal-badge";
 import { BrutalButton } from "../components/ui/brutal-button";
 import { BrutalLoader } from "../components/ui/brutal-loader";
+import CustomSelect from "../components/ui/CustomSelect";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { EASE_SNAP, prefersReducedMotion, STAGGER_GAP } from "../lib/motion";
@@ -255,26 +256,26 @@ const BrowseProducts = () => {
         <div className="flex flex-col md:flex-row gap-8">
           
           {/* SIDEBAR FILTERS */}
-          <aside className="w-full md:w-64 bg-paper brutal-block h-fit overflow-hidden">
-            <div className="p-5 border-b-[var(--border-w-sm)] border-ink bg-paper flex items-center justify-between gap-3">
+          <aside className="w-full md:w-64 bg-paper brutal-block h-fit overflow-visible">
+            <div className="p-5 border-b-[var(--border-w-sm)] border-ink bg-paper flex items-center justify-between gap-3 rounded-t-[calc(var(--brutal-radius)-1px)]">
               <button
                 type="button"
                 onClick={() => setIsFiltersOpen((current) => !current)}
                 className="flex flex-1 items-center justify-between gap-3 text-left md:pointer-events-none"
                 aria-expanded={isFiltersOpen}
               >
-                <span className="flex items-center gap-2 text-xl font-bold text-slate-900">
-                  <Filter className="w-5 h-5 text-blue-600 md:hidden" />
+                <span className="flex items-center gap-2 text-xl font-bold text-ink">
+                  <Filter className="w-5 h-5 text-ledger-blue" />
                   Filters
                 </span>
                 <ChevronDown
-                  className={`w-5 h-5 text-slate-400 transition-transform md:hidden ${
+                  className={`w-5 h-5 text-ink/40 transition-transform md:hidden ${
                     isFiltersOpen ? "rotate-180" : ""
                   }`}
                 />
               </button>
               {hasActiveFilters && (
-                <button onClick={clearFilters} className="text-xs font-bold text-red-500 flex items-center hover:underline">
+                <button onClick={clearFilters} className="text-xs font-bold text-stamp-red flex items-center hover:underline">
                   <X className="w-3 h-3 mr-1" /> Clear All
                 </button>
               )}
@@ -283,8 +284,8 @@ const BrowseProducts = () => {
             <div className={`${isFiltersOpen ? "block" : "hidden"} md:block px-4 pb-4 md:p-6 md:pt-6`}>
               {Object.entries(filterOptions).map(([category, options]) => (
                 <div key={category} className="mb-6">
-                  <h4 className="text-sm font-semibold uppercase text-slate-400 tracking-wider mb-4">{category}</h4>
-                  <div className="flex flex-wrap gap-2">
+                  <h4 className="text-sm font-medium uppercase text-ink/40 tracking-wider mb-4 font-mono">{category}</h4>
+                  <div className="flex flex-col gap-2">
                     {options.map((option) => {
                       const isActive = 
                         (category === 'Category' && selectedCategory === option) ||
@@ -295,10 +296,10 @@ const BrowseProducts = () => {
                         <button
                           key={option}
                           onClick={() => toggleFilter(category, option)}
-                          className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors brutal-focus ${
+                          className={`w-full text-left px-4 py-3 font-body font-semibold text-sm transition-all duration-120 ${
                             isActive 
-                              ? "bg-ledger-blue text-paper"
-                              : "text-ink/80 hover:bg-paper-blue hover:text-ink"
+                              ? "bg-ledger-blue text-paper brutal-block-sm shadow-[2px_2px_0px_0px_var(--color-ink)]"
+                              : "text-ink/80 hover:bg-paper-blue hover:text-ink border-transparent hover:border-ink "
                           }`}
                         >
                           {option}
@@ -311,19 +312,17 @@ const BrowseProducts = () => {
 
               {/* COLLEGE FILTER */}
               <div className="mb-2">
-                <h4 className="text-sm font-semibold uppercase text-slate-400 tracking-wider mb-4">College</h4>
-                <div className="relative">
-                  <select
+                <h4 className="text-sm font-medium uppercase text-ink/40 tracking-wider mb-4 font-mono">College</h4>
+                <div className="relative z-50">
+                  <CustomSelect
+                    options={[
+                      { value: ALL_COLLEGES_FILTER, label: "All Colleges" },
+                      ...COLLEGE_FILTER_OPTIONS.map(col => ({ value: col, label: col }))
+                    ]}
                     value={selectedCollege}
-                    onChange={(e) => updateFilterParams("college", e.target.value)}
-                    className="w-full pl-3 pr-9 py-2.5 bg-slate-50 text-slate-700 rounded-lg text-sm border border-slate-200 focus:ring-2 focus:ring-blue-500 appearance-none font-bold outline-none cursor-pointer"
-                  >
-                    <option value={ALL_COLLEGES_FILTER}>Select College</option>
-                    {COLLEGE_FILTER_OPTIONS.map((col) => (
-                      <option key={col} value={col}>{col}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    onChange={(val) => updateFilterParams("college", val)}
+                    placeholder="Select College"
+                  />
                 </div>
               </div>
             </div>

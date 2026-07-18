@@ -20,7 +20,7 @@ export const BrutalLoader = ({ size = "md", className }: BrutalLoaderProps) => {
           sizeClasses[size]
         )}
         style={{
-          boxShadow: '3px 3px 0 0 var(--color-ink)',
+          boxShadow: '3px 3px 0 0 var(--color-shadow)',
           borderRadius: 'var(--brutal-radius)',
         }}
       />

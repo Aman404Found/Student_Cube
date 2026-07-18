@@ -5,8 +5,8 @@
 
 :root {
   --theme-ink: #0A0A0A;
-  --theme-paper: #FFFFFF;
-  --theme-paper-blue: #EEF2FC;
+  --theme-paper: #FCFCFC;
+  --theme-paper-blue: #EEF2F5;
   --theme-signal-orange: #FF5A1F;
   --theme-campus-green: #12B76A;
   --theme-ledger-blue: #2952E3;
@@ -51,9 +51,9 @@
 
 /* ── Brutal primitives (design.md §4) ── */
 :root {
-  --border-w: 3px;
-  --border-w-sm: 2px;
-  --shadow-off: 4px;
+  --border-w: 1.5px;
+  --border-w-sm: 1px;
+  --shadow-off: 3px;
   --shadow-off-lg: 6px;
   --brutal-radius: 0px;
 }
