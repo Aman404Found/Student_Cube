@@ -83,12 +83,7 @@ const Footer = () => {
               href="https://chat.whatsapp.com/G7FGYX6gvU15rGMV9ygQVA"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-10 h-10 bg-campus-green flex items-center justify-center text-paper brutal-focus transition-all duration-120 hover:translate-y-[-2px] hover:translate-x-[-2px]"
-              style={{
-                border: "var(--border-w-sm) solid var(--color-ink)",
-                boxShadow: "3px 3px 0 0 var(--color-shadow)",
-                borderRadius: "var(--brutal-radius)",
-              }}
+              className="w-10 h-10 bg-campus-green flex items-center justify-center text-paper brutal-focus brutal-block-sm transition-all duration-300 hover:translate-y-[-2px] hover:translate-x-[-2px]"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -105,12 +100,7 @@ const Footer = () => {
               href="https://www.linkedin.com/company/student-cube/"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-10 h-10 bg-ledger-blue flex items-center justify-center text-paper brutal-focus transition-all duration-120 hover:translate-y-[-2px] hover:translate-x-[-2px]"
-              style={{
-                border: "var(--border-w-sm) solid var(--color-ink)",
-                boxShadow: "3px 3px 0 0 var(--color-shadow)",
-                borderRadius: "var(--brutal-radius)",
-              }}
+              className="w-10 h-10 bg-ledger-blue flex items-center justify-center text-paper brutal-focus brutal-block-sm transition-all duration-300 hover:translate-y-[-2px] hover:translate-x-[-2px]"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -127,12 +117,7 @@ const Footer = () => {
               href="https://x.com/Student_Cube"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-10 h-10 bg-paper flex items-center justify-center text-ink brutal-focus transition-all duration-120 hover:translate-y-[-2px] hover:translate-x-[-2px]"
-              style={{
-                border: "var(--border-w-sm) solid var(--color-ink)",
-                boxShadow: "3px 3px 0 0 var(--color-shadow)",
-                borderRadius: "var(--brutal-radius)",
-              }}
+              className="w-10 h-10 bg-paper flex items-center justify-center text-ink brutal-focus brutal-block-sm transition-all duration-300 hover:translate-y-[-2px] hover:translate-x-[-2px]"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -149,12 +134,7 @@ const Footer = () => {
               href="https://www.instagram.com/student_cube/"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-10 h-10 bg-stamp-red flex items-center justify-center text-paper brutal-focus transition-all duration-120 hover:translate-y-[-2px] hover:translate-x-[-2px]"
-              style={{
-                border: "var(--border-w-sm) solid var(--color-ink)",
-                boxShadow: "3px 3px 0 0 var(--color-shadow)",
-                borderRadius: "var(--brutal-radius)",
-              }}
+              className="w-10 h-10 bg-stamp-red flex items-center justify-center text-paper brutal-focus brutal-block-sm transition-all duration-300 hover:translate-y-[-2px] hover:translate-x-[-2px]"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
