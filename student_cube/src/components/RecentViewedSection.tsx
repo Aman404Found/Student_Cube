@@ -141,7 +141,7 @@ const RecentViewedSection = () => {
         {recentlyViewed.map((prod) => {
           const hasDiscount = prod.originalPrice && prod.price && prod.originalPrice > prod.price;
           const discountPercentage = hasDiscount 
-            ? Math.round(((prod.originalPrice! - prod.price) / prod.originalPrice!) * 100) 
+            ? Math.round(((prod.originalPrice! - prod.price!) / prod.originalPrice!) * 100) 
             : null;
 
           return (
