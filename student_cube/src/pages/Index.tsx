@@ -12,12 +12,12 @@ import {
   FileText,
   Shirt,
   Laptop,
-  Briefcase,
   Package,
   UserPlus,
   Zap,
   Shield,
   BadgeCheck,
+  Bot,
 } from "lucide-react";
 
 // === COMPONENTS ===
@@ -126,7 +126,7 @@ const Index = () => {
       name: "IOT and Robotics",
       backendMatch: ["iot and robotics", "iot", "robotics", "accessories", "accessory"],
       count: 0,
-      icon: Briefcase,
+      icon: Bot,
       bgColor: "bg-amber-500",
       link: "/buy?category=IOT+and+Robotics",
     },
@@ -177,7 +177,7 @@ const Index = () => {
   });
 
   return (
-    <main className="relative w-full overflow-hidden">
+    <main className="relative w-full overflow-hidden bg-paper">
       <style>
         {`
           @keyframes float {

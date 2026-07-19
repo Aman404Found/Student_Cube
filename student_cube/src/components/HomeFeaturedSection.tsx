@@ -14,6 +14,7 @@ interface ProductData {
   _id: string;
   title: string;
   price: number;
+  originalPrice?: number;
   views: number;
   images?: ProductImageValue[];
   category: string;
@@ -93,7 +94,13 @@ const HomeFeaturedSection = () => {
       </div>
 
       <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {featuredProducts.map((prod) => (
+        {featuredProducts.map((prod) => {
+          const hasDiscount = prod.originalPrice && prod.price && prod.originalPrice > prod.price;
+          const discountPercentage = hasDiscount 
+            ? Math.round(((prod.originalPrice! - prod.price) / prod.originalPrice!) * 100) 
+            : null;
+
+          return (
           <Link
             key={prod._id}
             to={`/product/${prod._id}`}
@@ -162,9 +169,23 @@ const HomeFeaturedSection = () => {
               </div>
             </BrutalCardContent>
 
-            <BrutalCardFooter className="pt-4 mt-auto border-t" style={{ borderTopColor: "var(--color-ink)", borderTopWidth: "var(--border-w-sm)", borderTopStyle: "solid" }}>
-              <div className="font-mono font-bold text-lg sm:text-xl text-ink">
-                ₹{prod.price}
+            <BrutalCardFooter className="pt-4 mt-auto flex justify-between border-t" style={{ borderTopColor: "var(--color-ink)", borderTopWidth: "var(--border-w-sm)", borderTopStyle: "solid" }}>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <div className="font-mono font-bold text-lg sm:text-xl text-ink">
+                    ₹{prod.price?.toLocaleString("en-IN") || prod.price}
+                  </div>
+                  {hasDiscount && (
+                    <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 bg-stamp-red text-paper border-[var(--border-w-sm)] border-solid border-ink shadow-[2px_2px_0_0_var(--color-ink)] -rotate-3">
+                      {discountPercentage}% OFF
+                    </span>
+                  )}
+                </div>
+                {prod.originalPrice && (
+                  <div className="text-[10px] text-ink/40 line-through font-mono">
+                    ₹{prod.originalPrice.toLocaleString("en-IN")}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2 sm:gap-3 font-mono text-[10px] sm:text-[11px] text-ink/40 font-semibold">
                 <span className="flex items-center">
@@ -174,7 +195,7 @@ const HomeFeaturedSection = () => {
             </BrutalCardFooter>
           </BrutalCard>
           </Link>
-        ))}
+        )})}
       </div>
     </section>
   );

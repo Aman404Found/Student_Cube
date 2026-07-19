@@ -15,6 +15,7 @@ interface RecentProduct {
   title?: string;
   name?: string;
   price?: number;
+  originalPrice?: number;
   category?: string;
   condition?: string;
   views?: number;
@@ -138,6 +139,11 @@ const RecentViewedSection = () => {
       {/* === CARDS GRID === */}
       <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {recentlyViewed.map((prod) => {
+          const hasDiscount = prod.originalPrice && prod.price && prod.originalPrice > prod.price;
+          const discountPercentage = hasDiscount 
+            ? Math.round(((prod.originalPrice! - prod.price) / prod.originalPrice!) * 100) 
+            : null;
+
           return (
           // Card Container
           <Link
@@ -206,10 +212,24 @@ const RecentViewedSection = () => {
                 <div className="grow"></div>
               </BrutalCardContent>
 
-              <BrutalCardFooter className="pt-4 mt-auto border-t" style={{ borderTopColor: "var(--color-ink)", borderTopWidth: "var(--border-w-sm)", borderTopStyle: "solid" }}>
-                <span className="font-mono text-2xl font-bold text-ink">
-                  ₹{prod.price || 0}
-                </span>
+              <BrutalCardFooter className="pt-4 mt-auto border-t flex justify-between" style={{ borderTopColor: "var(--color-ink)", borderTopWidth: "var(--border-w-sm)", borderTopStyle: "solid" }}>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-2xl font-bold text-ink">
+                      ₹{prod.price || 0}
+                    </span>
+                    {hasDiscount && (
+                      <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 bg-stamp-red text-paper border-[var(--border-w-sm)] border-solid border-ink shadow-[2px_2px_0_0_var(--color-ink)] -rotate-3">
+                        {discountPercentage}% OFF
+                      </span>
+                    )}
+                  </div>
+                  {prod.originalPrice && (
+                    <div className="text-[10px] text-ink/40 line-through font-mono">
+                      ₹{prod.originalPrice.toLocaleString("en-IN")}
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center font-mono text-ink/40 text-xs font-semibold">
                   <Eye className="w-4 h-4 mr-1.5" />
                   {prod.views || 0}

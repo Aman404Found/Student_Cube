@@ -282,8 +282,25 @@ const BrowseProducts = () => {
             </div>
 
             <div className={`${isFiltersOpen ? "block" : "hidden"} md:block px-4 pb-4 md:p-6 md:pt-6`}>
+
+              {/* COLLEGE FILTER */}
+              <div className="mb-8">
+                <h4 className="text-sm font-medium uppercase text-ink/40 tracking-wider mb-4 font-mono">College</h4>
+                <div className="relative z-50">
+                  <CustomSelect
+                    options={[
+                      { value: ALL_COLLEGES_FILTER, label: "All Colleges" },
+                      ...COLLEGE_FILTER_OPTIONS.map(col => ({ value: col, label: col }))
+                    ]}
+                    value={selectedCollege}
+                    onChange={(val) => updateFilterParams("college", val)}
+                    placeholder="Select College"
+                  />
+                </div>
+              </div>
+
               {Object.entries(filterOptions).map(([category, options]) => (
-                <div key={category} className="mb-6">
+                <div key={category} className="mb-6 last:mb-0">
                   <h4 className="text-sm font-medium uppercase text-ink/40 tracking-wider mb-4 font-mono">{category}</h4>
                   <div className="flex flex-col gap-2">
                     {options.map((option) => {
@@ -310,21 +327,7 @@ const BrowseProducts = () => {
                 </div>
               ))}
 
-              {/* COLLEGE FILTER */}
-              <div className="mb-2">
-                <h4 className="text-sm font-medium uppercase text-ink/40 tracking-wider mb-4 font-mono">College</h4>
-                <div className="relative z-50">
-                  <CustomSelect
-                    options={[
-                      { value: ALL_COLLEGES_FILTER, label: "All Colleges" },
-                      ...COLLEGE_FILTER_OPTIONS.map(col => ({ value: col, label: col }))
-                    ]}
-                    value={selectedCollege}
-                    onChange={(val) => updateFilterParams("college", val)}
-                    placeholder="Select College"
-                  />
-                </div>
-              </div>
+              
             </div>
           </aside>
 
@@ -345,7 +348,12 @@ const BrowseProducts = () => {
               </div>
             ) : (
               <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {products.map((prod) => (
+                {products.map((prod) => {
+                  const hasDiscount = prod.originalPrice && prod.price && prod.originalPrice > prod.price;
+                  const discountPercentage = hasDiscount 
+                    ? Math.round(((prod.originalPrice! - prod.price) / prod.originalPrice!) * 100) 
+                    : null;
+                  return (
                   <BrutalCard 
                     key={prod._id} 
                     onClick={() => navigate(`/product/${prod._id}`)}
@@ -417,10 +425,17 @@ const BrowseProducts = () => {
                       </div>
                     </BrutalCardContent>
                     
-                    <BrutalCardFooter className="pt-4 mt-auto border-t-[var(--border-w-sm)] border-solid border-ink bg-paper flex justify-between items-center">
-                      <div className="flex flex-col">
-                        <div className="font-mono font-bold text-lg text-ink">
-                            ₹{prod.price ? prod.price.toLocaleString("en-IN") : "0"}
+                    <BrutalCardFooter className="pt-4 mt-auto border-t-[var(--border-w-sm)] border-solid border-ink bg-paper flex justify-between items-center relative">
+                      <div className="flex flex-col relative">
+                        <div className="flex items-center gap-2">
+                          <div className="font-mono font-bold text-lg text-ink">
+                              ₹{prod.price ? prod.price.toLocaleString("en-IN") : "0"}
+                          </div>
+                          {hasDiscount && (
+                            <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 bg-stamp-red text-paper border-[var(--border-w-sm)] border-solid border-ink shadow-[2px_2px_0_0_var(--color-ink)] -rotate-3">
+                              {discountPercentage}% OFF
+                            </span>
+                          )}
                         </div>
                         {prod.originalPrice && (
                           <div className="text-[10px] text-ink/40 line-through font-mono">
@@ -434,7 +449,7 @@ const BrowseProducts = () => {
                       </div>
                     </BrutalCardFooter>
                   </BrutalCard>
-                ))}
+                )})}
               </div>
             )}
             

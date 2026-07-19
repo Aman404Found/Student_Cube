@@ -415,8 +415,8 @@ const ProductDetail = () => {
   };
 
   return (
-    <div className="min-h-screen bg-paper font-sans pb-20 pt-28 text-ink">
-      <div className="max-w-6xl mx-auto p-4 pt-8">
+    <div className="min-h-screen bg-paper font-sans pb-20 pt-4 md:pt-8 text-ink">
+      <div className="max-w-6xl mx-auto p-4">
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
@@ -508,13 +508,18 @@ const ProductDetail = () => {
               {product.title || product.name}
             </h1>
 
-            <div className="flex items-end gap-3 mb-6 pb-6 border-b-[var(--border-w-sm)] border-solid border-ink/20">
+            <div className="flex flex-wrap items-center gap-3 mb-6 pb-6 border-b-[var(--border-w-sm)] border-solid border-ink/20 relative">
               <span className="font-mono text-4xl font-black text-ink">
                 ₹{product.price?.toLocaleString("en-IN")}
               </span>
               {product.originalPrice && (
                 <span className="font-mono text-lg text-ink/40 line-through font-semibold mb-1">
                   ₹{product.originalPrice?.toLocaleString("en-IN")}
+                </span>
+              )}
+              {product.originalPrice && product.price && product.originalPrice > product.price && (
+                <span className="font-mono text-[10px] sm:text-xs font-bold px-2 py-1 bg-stamp-red text-paper border-[var(--border-w-sm)] border-solid border-ink shadow-[2px_2px_0_0_var(--color-ink)] mb-1 -rotate-2">
+                  {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                 </span>
               )}
             </div>
@@ -585,14 +590,14 @@ const ProductDetail = () => {
                 </div>
 
                 {/* Views Time - Mobile par Horizontal & Desktop par Stacked */}
-                <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-1 text-xs text-ink/60 font-mono font-bold sm:bg-transparent p-3 sm:p-0 uppercase">
-                  <p className="flex items-center">
+                <div className="flex sm:flex-col items-center sm:items-start gap-3 sm:gap-1 text-xs text-ink/60 font-mono font-bold sm:bg-transparent p-3 sm:p-0 uppercase">
+                  <p className="flex items-center whitespace-nowrap">
                     <Eye className="w-3.5 h-3.5 mr-1.5 text-ink shrink-0" />
                     <span>{product.views || 0} Views</span>
                   </p>
                   {/* Mobile separator dot */}
                   <div className="w-1 h-1 bg-ink sm:hidden"></div>
-                  <p className="flex items-center">
+                  <p className="flex items-center whitespace-nowrap">
                     <Clock className="w-3.5 h-3.5 mr-1.5 text-ink shrink-0" />
                     <span>
                       Listed {new Date(product.createdAt).toLocaleDateString()}
