@@ -353,10 +353,14 @@ export const markProductChatsForLifecycle = async ({ productId, status, message 
   return markedCount;
 };
 
-export const sendChatMessage = async ({ offerId, senderId, text, kind = 'CUSTOM' }) => {
+export const sendChatMessage = async ({ offerId, senderId, text, kind = 'CUSTOM', metadata = {} }) => {
   await cleanupExpiredProductChats();
 
-  const offer = await Offer.findById(offerId);
+  const offer = await Offer.findById(offerId)
+    .populate('product', '_id title price images')
+    .populate('buyer', '_id name username')
+    .populate('seller', '_id name username');
+    
   if (!offer) {
     const error = new Error('Offer not found.');
     error.status = 404;
@@ -396,12 +400,24 @@ export const sendChatMessage = async ({ offerId, senderId, text, kind = 'CUSTOM'
     }
   }
 
-  return recordChatMessage({
+  const message = await recordChatMessage({
     offer,
     sender: senderId,
     text: trimmedText,
     kind: canSendCustom ? 'CUSTOM' : 'PREDEFINED',
+    metadata,
   });
+
+  await message.populate('sender', '_id name username');
+  await message.populate('receiver', '_id name username');
+
+  const formattedMessage = formatMessageForChat(message, chat, offer);
+
+  return {
+    ...formattedMessage,
+    sender: formatChatUserIdentity(formattedMessage.sender, canSendCustom),
+    receiver: formatChatUserIdentity(formattedMessage.receiver, canSendCustom),
+  };
 };
 
 export const getChatWithMessages = async (offerId, userId) => {
@@ -433,7 +449,13 @@ export const getChatWithMessages = async (offerId, userId) => {
     throw error;
   }
 
-  const messages = await Message.find({ chat: chat._id })
+  const clearedByEntry = chat.clearedBy?.find((entry) => idsEqual(entry.user, userId));
+  const clearedAt = clearedByEntry ? clearedByEntry.clearedAt : new Date(0);
+
+  const messages = await Message.find({ 
+    chat: chat._id,
+    createdAt: { $gt: clearedAt }
+  })
     .sort({ createdAt: 1 })
     .populate('sender', '_id name username')
     .populate('receiver', '_id name username');
@@ -472,4 +494,29 @@ export const getChatWithMessages = async (offerId, userId) => {
       deleteAfter: chat.deleteAfter,
     },
   };
+};
+
+export const clearChatHistory = async (offerId, userId) => {
+  const chat = await findChatByOffer(offerId);
+  if (!chat) {
+    const error = new Error('Chat not found.');
+    error.status = 404;
+    throw error;
+  }
+
+  if (!isChatParticipant(chat, userId)) {
+    const error = new Error('You are not part of this chat.');
+    error.status = 403;
+    throw error;
+  }
+
+  const existingClear = chat.clearedBy?.find((entry) => idsEqual(entry.user, userId));
+  if (existingClear) {
+    existingClear.clearedAt = new Date();
+  } else {
+    chat.clearedBy.push({ user: getId(userId), clearedAt: new Date() });
+  }
+
+  await chat.save();
+  return true;
 };

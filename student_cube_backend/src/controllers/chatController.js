@@ -182,3 +182,26 @@ export const getChatHistory = async (req, res) => {
     });
   }
 };
+
+export const clearChat = async (req, res) => {
+  try {
+    const { offerId } = req.params;
+    
+    // Import clearChatHistory here or at the top of the file
+    // I need to check if it's imported at the top. Let's assume I will import it if needed.
+    const { clearChatHistory } = await import('../utils/chatService.js');
+
+    await clearChatHistory(offerId, req.user._id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Chat history cleared successfully',
+    });
+  } catch (error) {
+    console.error("Error clearing chat history:", error);
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || 'Failed to clear chat history',
+    });
+  }
+};

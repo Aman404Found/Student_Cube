@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -16,7 +16,11 @@ import {
   User,
   Check,
   CheckCheck,
-  Image as ImageIcon,
+  CornerUpLeft,
+  X,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
@@ -78,6 +82,11 @@ interface ChatMessage {
     | "failed";
     buyer?: string | ChatUser;
     seller?: string | ChatUser;
+    replyTo?: {
+      messageId: string;
+      text: string;
+      senderName: string;
+    };
   };
   createdAt?: string;
   deliveryStatus?: "sent" | "read";
@@ -171,6 +180,7 @@ interface MessagesPaneProps {
     action: "accept" | "reject" | "revoke",
   ) => void;
   offerIdFallback: string;
+  onReply?: (msg: ChatMessage) => void;
 }
 
 // Mounted with key={offerId} by the parent. Owns its own scroll refs/state,
@@ -185,6 +195,7 @@ const MessagesPane = ({
   offerActionLoading,
   onOfferAction,
   offerIdFallback,
+  onReply,
 }: MessagesPaneProps) => {
   const [showLatestButton, setShowLatestButton] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -205,7 +216,12 @@ const MessagesPane = ({
   // The resulting native scroll event fires onScroll above, which is what
   // actually updates showLatestButton, so effects never call setState directly.
   const jumpToBottom = (behavior: ScrollBehavior) => {
-    messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior,
+      });
+    }
     isNearBottomRef.current = true;
   };
 
@@ -216,25 +232,26 @@ const MessagesPane = ({
     setShowLatestButton(false);
   };
 
-  // Jump to the bottom once, right after this chat's messages first render.
-  useEffect(() => {
-    jumpToBottom("auto");
-  }, []);
-
-  // Auto-scroll on new messages: smoothly, but only if the user is already
-  // near the bottom (e.g. they just sent a message, or a message arrived
-  // while they were reading recent history). If they've scrolled up into
-  // older history, leave them there — showLatestButton is already true
-  // from their own scroll interaction, so there's nothing to update.
+  const isInitialLoadRef = useRef(true);
   const messageCount = messages.length;
-  useEffect(() => {
+
+  // Auto-scroll logic:
+  // 1. On initial history load: instant scroll BEFORE paint to completely prevent jitter/glimpse of top.
+  // 2. On new messages: snap instantly ("auto") to avoid animation conflicts
+  useLayoutEffect(() => {
     if (messageCount === 0) return;
+
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      jumpToBottom("auto");
+      return;
+    }
 
     const lastMessage = messages[messages.length - 1];
     const lastIsMine = getUserId(lastMessage.sender) === currentUserId;
 
     if (isNearBottomRef.current || lastIsMine) {
-      jumpToBottom("smooth");
+      jumpToBottom("auto");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messageCount]);
@@ -425,14 +442,24 @@ const MessagesPane = ({
                   </div>
                 )}
 
-                <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                <div className={`flex items-center gap-2 group ${isMe ? "justify-end" : "justify-start"}`}>
+                  {isMe && onReply && msg.kind !== "OFFER" && msg.kind !== "COUNTER_OFFER" && (
+                    <button
+                      onClick={() => onReply(msg)}
+                      className="p-1 sm:p-2 bg-transparent sm:bg-paper sm:border-[var(--border-w-sm)] sm:border-ink hover:bg-highlighter sm:brutal-block-sm transition-all opacity-60 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 flex shrink-0 active:scale-95"
+                      title="Reply"
+                    >
+                      <CornerUpLeft className="w-4 h-4 text-ink" />
+                    </button>
+                  )}
                   {msg.kind === "OFFER" || msg.kind === "COUNTER_OFFER" ? (
                     renderOfferCard(msg, isLatestOfferActivity(idx))
                   ) : (
                     <div
-                      className={`max-w-[75%] px-4 py-3 brutal-block-sm font-body font-medium text-sm md:text-base ${isMe
-                          ? "bg-signal-orange text-paper"
-                          : "bg-paper text-ink"
+                      onDoubleClick={() => onReply && msg.kind !== "OFFER" && msg.kind !== "COUNTER_OFFER" ? onReply(msg) : null}
+                      className={`relative max-w-[85%] sm:max-w-[75%] px-3 sm:px-4 py-2 sm:py-3 brutal-block-sm font-body font-medium text-sm md:text-base cursor-default select-text ${isMe
+                        ? "bg-signal-orange text-paper"
+                        : "bg-paper text-ink"
                         }`}
                     >
                       <div
@@ -440,6 +467,18 @@ const MessagesPane = ({
                       >
                         {label}
                       </div>
+
+                      {msg.metadata?.replyTo && (
+                        <div className={`mb-2 px-3 py-1.5 flex flex-col gap-0.5 rounded-r border-l-4 ${isMe ? "bg-black/10 border-paper" : "bg-black/5 border-ledger-blue"}`}>
+                          <span className={`font-display text-[9px] uppercase font-bold ${isMe ? "text-paper" : "text-ledger-blue"}`}>
+                            {msg.metadata.replyTo.senderName}
+                          </span>
+                          <span className="font-body text-xs opacity-90 line-clamp-2">
+                            {msg.metadata.replyTo.text}
+                          </span>
+                        </div>
+                      )}
+
                       <div className="leading-relaxed whitespace-pre-wrap break-words">
                         {msg.text}
                       </div>
@@ -465,6 +504,15 @@ const MessagesPane = ({
                         )}
                       </div>
                     </div>
+                  )}
+                  {!isMe && onReply && msg.kind !== "OFFER" && msg.kind !== "COUNTER_OFFER" && (
+                    <button
+                      onClick={() => onReply(msg)}
+                      className="p-1 sm:p-2 bg-transparent sm:bg-paper sm:border-[var(--border-w-sm)] sm:border-ink hover:bg-highlighter sm:brutal-block-sm transition-all opacity-60 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 flex shrink-0 active:scale-95"
+                      title="Reply"
+                    >
+                      <CornerUpLeft className="w-4 h-4 text-ink" />
+                    </button>
                   )}
                 </div>
               </div>
@@ -499,7 +547,6 @@ const Chat = () => {
 
   const [chats, setChats] = useState<ChatListItem[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState("");
   const [prePaymentMessages, setPrePaymentMessages] = useState<string[]>([]);
   const [canSendCustom, setCanSendCustom] = useState(false);
   const [lockedMessage, setLockedMessage] = useState<string | null>(null);
@@ -518,6 +565,10 @@ const Chat = () => {
   const [offerActionLoading, setOfferActionLoading] = useState<string | null>(
     null,
   );
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [showClearAlert, setShowClearAlert] = useState(false);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(true);
 
   useGSAP(() => {
     if (prefersReducedMotion()) return;
@@ -545,7 +596,42 @@ const Chat = () => {
     }
   }, { dependencies: [sidebarRef.current, chatRef.current, chats.length] });
 
+  const confirmClearChat = async () => {
+    if (!offerId) return;
+
+    try {
+      await api.delete(`/chat/${offerId}/clear`);
+      setMessages([]);
+      toast.success("Chat cleared");
+      setShowClearAlert(false);
+    } catch (error) {
+      console.error("Failed to clear chat:", error);
+      toast.error("Failed to clear chat");
+    }
+  };
+
   const wsRef = useRef<WebSocket | null>(null);
+  const quickMessagesRef = useRef<HTMLDivElement | null>(null);
+
+  const handleQuickMessagesScroll = () => {
+    if (!quickMessagesRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = quickMessagesRef.current;
+    setShowLeftArrow(scrollLeft > 0);
+    setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 1);
+  };
+
+  useEffect(() => {
+    handleQuickMessagesScroll();
+    window.addEventListener('resize', handleQuickMessagesScroll);
+    return () => window.removeEventListener('resize', handleQuickMessagesScroll);
+  }, [prePaymentMessages]);
+
+  const scrollQuickMessages = (direction: 'left' | 'right') => {
+    if (quickMessagesRef.current) {
+      const scrollAmount = direction === 'left' ? -250 : 250;
+      quickMessagesRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   const markCurrentChatRead = async (nextOfferId = offerId) => {
     if (!nextOfferId) return;
@@ -585,7 +671,10 @@ const Chat = () => {
     async (silent = false) => {
       if (!offerId) return;
 
-      if (!silent) setIsLoading(true);
+      if (!silent) {
+        setIsLoading(true);
+        setMessages([]); // Clear previous chat messages immediately
+      }
       try {
         const res = await api.get(`/chat/${offerId}`);
         setMessages(res.data.data || []);
@@ -623,18 +712,29 @@ const Chat = () => {
   }, [fetchCurrentChat]);
 
   useEffect(() => {
+    let timeoutId: number;
+
     const handleRealtime = (event: Event) => {
       const payload = (event as CustomEvent).detail || {};
-      fetchChats();
 
-      if (payload.type !== "unread_changed" && offerId) {
-        fetchCurrentChat(true);
-      }
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        fetchChats();
+        if (
+          payload.type !== "unread_changed" &&
+          payload.type !== "chat_updated" &&
+          offerId
+        ) {
+          fetchCurrentChat(true);
+        }
+      }, 500);
     };
 
     window.addEventListener("student-cube-realtime", handleRealtime);
-    return () =>
+    return () => {
       window.removeEventListener("student-cube-realtime", handleRealtime);
+      window.clearTimeout(timeoutId);
+    };
   }, [fetchChats, fetchCurrentChat, offerId]);
 
   useEffect(() => {
@@ -724,11 +824,10 @@ const Chat = () => {
         setIsSocketReady(false);
       }
 
-      if (
-        ws.readyState === WebSocket.CONNECTING ||
-        ws.readyState === WebSocket.OPEN
-      ) {
-        window.setTimeout(() => ws.close(), 0);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      } else if (ws.readyState === WebSocket.CONNECTING) {
+        ws.onopen = () => ws.close();
       }
     };
   }, [offerId, token]);
@@ -838,9 +937,18 @@ const Chat = () => {
       _id: clientMessageId,
       text: trimmedText,
       kind,
-      sender: currentUserId,
+      sender: user || currentUserId, // pass populated user to avoid "User" display
       createdAt: new Date().toISOString(),
       deliveryStatus: "sent",
+      metadata: replyingTo ? {
+        replyTo: {
+          messageId: replyingTo._id || "",
+          text: replyingTo.text,
+          senderName: getUserId(replyingTo.sender) === currentUserId
+            ? "You"
+            : getUserName(replyingTo.sender) || "Student"
+        }
+      } : {},
     };
     setMessages((prev) => [...prev, optimisticMessage]);
 
@@ -851,14 +959,18 @@ const Chat = () => {
         text: trimmedText,
         kind,
         clientMessageId,
+        metadata: replyingTo ? {
+          replyTo: {
+            messageId: replyingTo._id || "",
+            text: replyingTo.text,
+            senderName: getUserId(replyingTo.sender) === currentUserId
+              ? "You"
+              : getUserName(replyingTo.sender) || "Student"
+          }
+        } : {},
       }),
     );
-    setNewMessage("");
-  };
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    sendMessage(newMessage, "CUSTOM");
+    setReplyingTo(null);
   };
 
   const getLatestOfferId = () => {
@@ -1000,7 +1112,7 @@ const Chat = () => {
   const sidebar = (
     <div
       ref={sidebarRef}
-      className={`${offerId ? "hidden md:flex" : "flex"} w-full md:w-80 lg:w-96 shrink-0 flex-col border-r-[var(--border-w)] border-ink bg-paper z-20 relative`}
+      className={`${offerId ? "hidden md:flex" : "flex"} w-full md:w-80 lg:w-96 shrink-0 flex-col border-r-[length:var(--border-w)] border-ink bg-paper z-20 relative`}
     >
       <div className="px-6 py-5 border-b-[var(--border-w)] border-ink shrink-0 bg-highlighter">
         <h1 className="text-2xl font-display font-black uppercase tracking-tight text-[#0A0A0A]">Messages</h1>
@@ -1089,47 +1201,57 @@ const Chat = () => {
     <div className="h-[calc(100vh-80px)] overflow-hidden bg-paper flex w-full relative">
       {sidebar}
       <div ref={chatRef} className="flex-1 flex flex-col min-w-0 bg-paper">
-        <div className="bg-paper px-4 md:px-6 py-4 flex items-center gap-4 border-b-[var(--border-w)] border-ink shadow-none z-10 shrink-0">
+        <div className="bg-paper px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center gap-2 sm:gap-4 border-b-[var(--border-w)] border-ink shadow-none z-10 shrink-0">
           <button
             onClick={() => navigate("/chat")}
-            className="p-3 bg-paper border-[var(--border-w-sm)] border-ink hover:bg-highlighter brutal-block-sm transition-colors md:hidden shrink-0"
+            className="p-2 sm:p-3 bg-paper border-[var(--border-w-sm)] border-ink hover:bg-highlighter brutal-block-sm transition-colors md:hidden shrink-0"
           >
-            <ArrowLeft className="w-5 h-5 text-ink" strokeWidth={2.5} />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-ink" strokeWidth={2.5} />
           </button>
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            <div className="w-12 h-12 bg-ledger-blue border-[var(--border-w)] border-ink flex items-center justify-center text-paper shrink-0" style={{ borderRadius: 'var(--radius)' }}>
-              <User className="w-6 h-6" />
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-ledger-blue border-[var(--border-w)] border-ink flex items-center justify-center text-paper shrink-0" style={{ borderRadius: 'var(--radius)' }}>
+              <User className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div className="min-w-0">
-              <h2 className="font-display text-xl uppercase font-bold tracking-tight text-ink truncate">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-lg sm:text-xl uppercase font-bold tracking-tight text-ink truncate">
                 {chatTitle}
               </h2>
-              <p className="font-mono text-xs font-bold text-ink truncate uppercase mt-0.5">
+              <p className="font-mono text-[10px] sm:text-xs font-bold text-ink truncate uppercase mt-0.5">
                 {canSendCustom ? getUserName(otherUser) : "Hidden Student"}
               </p>
             </div>
           </div>
-          {chatProduct?._id && (
-            <Link
-              to={`/product/${chatProduct._id}`}
-              className="shrink-0 brutal-block-sm bg-paper px-4 py-2 font-display text-sm font-bold uppercase tracking-tight text-ink hover:bg-paper-blue transition-colors"
+          <div className="flex items-center gap-2 shrink-0">
+            {chatProduct?._id && (
+              <Link
+                to={`/product/${chatProduct._id}`}
+                className="brutal-block-sm bg-paper px-2 sm:px-4 py-1.5 sm:py-2 font-display text-[10px] sm:text-sm font-bold uppercase tracking-tight text-ink hover:bg-paper-blue transition-colors flex items-center justify-center"
+              >
+                <span className="sm:hidden">Info</span>
+                <span className="hidden sm:inline">Product Info</span>
+              </Link>
+            )}
+            <button
+              onClick={() => setShowClearAlert(true)}
+              className="brutal-block-sm bg-paper p-1.5 sm:p-2 text-stamp-red hover:bg-stamp-red hover:text-paper transition-colors flex items-center justify-center"
+              title="Clear Chat"
             >
-              Product Info
-            </Link>
-          )}
+              <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
+            </button>
+          </div>
         </div>
 
         {!canSendCustom && lockedMessage && (
-          <div className="bg-stamp-red border-b-[var(--border-w)] border-ink px-4 md:px-6 py-4 text-sm text-paper font-bold font-body flex items-center justify-between gap-4 shrink-0">
-            <div className="flex items-center gap-3 min-w-0 text-paper">
-              <Lock className="w-5 h-5 shrink-0" strokeWidth={2.5} />
-              <span className="truncate">{lockedMessage}</span>
+          <div className="bg-stamp-red border-b-[var(--border-w)] border-ink px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-paper font-bold font-body flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
+            <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0 text-paper w-full">
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 mt-0.5 sm:mt-0" strokeWidth={2.5} />
+              <span className="leading-snug flex-1">{lockedMessage}</span>
             </div>
 
             {currentUserId !== chatSellerId && (
               <button
                 onClick={handleUnlockPayment}
-                className="bg-paper text-stamp-red hover:bg-paper-blue px-4 py-2 brutal-block-sm font-display uppercase font-bold text-sm transition-colors shrink-0 whitespace-nowrap"
+                className="bg-paper text-stamp-red hover:bg-paper-blue px-3 sm:px-4 py-1.5 sm:py-2 brutal-block-sm font-display uppercase font-bold text-xs sm:text-sm transition-colors shrink-0 whitespace-nowrap self-end sm:self-auto"
               >
                 Pay ₹9
               </button>
@@ -1160,21 +1282,48 @@ const Chat = () => {
           offerActionLoading={offerActionLoading}
           onOfferAction={handleOfferCardAction}
           offerIdFallback={offerId || ""}
+          onReply={(msg) => setReplyingTo(msg)}
         />
 
-        <div className="bg-paper p-4 md:p-6 border-t-[var(--border-w)] border-ink shrink-0 z-10">
+        <div className="bg-paper p-3 sm:p-4 md:p-6 border-t-[length:var(--border-w)] border-ink shrink-0 z-10">
           {!canSendCustom && prePaymentMessages.length > 0 && (
-            <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
-              {prePaymentMessages.map((text) => (
+            <div className="flex items-start gap-2 relative group pb-1">
+              {showLeftArrow && (
                 <button
-                  key={text}
                   type="button"
-                  onClick={() => handleQuickMessage(text)}
-                  className="shrink-0 brutal-block-sm bg-paper-blue px-4 py-2 font-body font-bold text-sm text-ink hover:bg-highlighter transition-colors whitespace-nowrap"
+                  onClick={() => scrollQuickMessages('left')}
+                  className="p-1 sm:p-1.5 bg-ink text-paper hover:bg-ledger-blue shrink-0 transition-all absolute left-0 z-10 -ml-2 sm:-ml-4 hidden md:flex mt-1"
                 >
-                  {text}
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
-              ))}
+              )}
+              
+              <div 
+                ref={quickMessagesRef}
+                onScroll={handleQuickMessagesScroll}
+                className="flex gap-2 sm:gap-3 overflow-x-auto no-scrollbar scroll-smooth flex-1 px-1 pb-3"
+              >
+                {prePaymentMessages.map((text) => (
+                  <button
+                    key={text}
+                    type="button"
+                    onClick={() => handleQuickMessage(text)}
+                    className="shrink-0 border-[length:var(--border-w)] border-ink bg-paper-blue px-3 sm:px-4 py-1.5 sm:py-2 font-body font-bold text-[11px] sm:text-sm text-ink hover:bg-highlighter transition-colors whitespace-nowrap"
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
+
+              {showRightArrow && (
+                <button
+                  type="button"
+                  onClick={() => scrollQuickMessages('right')}
+                  className="p-1 sm:p-1.5 bg-ink text-paper hover:bg-ledger-blue shrink-0 transition-all absolute right-0 z-10 -mr-2 sm:-mr-4 hidden md:flex mt-1"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           )}
 
@@ -1222,38 +1371,108 @@ const Chat = () => {
             </form>
           )}
 
-          <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={!canSendCustom}
-              title="Attach image (coming soon)"
-              onClick={() => toast("Image attachments aren't wired up yet.")}
-              className="w-12 h-12 md:w-14 md:h-14 shrink-0 flex items-center justify-center brutal-block-sm bg-paper text-ink hover:bg-highlighter disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ImageIcon className="w-5 h-5 md:w-6 md:h-6" />
-            </button>
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={
-                canSendCustom
-                  ? "Type a message..."
-                  : "Full chat unlocks after payment verification"
-              }
-              disabled={!canSendCustom}
-              className="flex-1 min-w-0 bg-paper brutal-block-sm px-4 md:px-5 py-3 md:py-4 font-body font-medium text-ink outline-none focus:ring-2 focus:ring-ledger-blue focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <button
-              type="submit"
-              disabled={!newMessage.trim() || !canSendCustom}
-              className="w-12 h-12 md:w-14 md:h-14 shrink-0 brutal-block-sm bg-signal-orange hover:bg-highlighter disabled:opacity-50 disabled:hover:bg-signal-orange text-ink rounded-none flex items-center justify-center transition-colors"
-            >
-              <Send className="w-5 h-5 md:w-6 md:h-6 ml-1" strokeWidth={2.5} />
-            </button>
-          </form>
+          <MessageInputForm
+            canSendCustom={canSendCustom}
+            onSendMessage={(text) => sendMessage(text, "CUSTOM")}
+            replyingTo={replyingTo}
+            onCancelReply={() => setReplyingTo(null)}
+          />
         </div>
       </div>
+
+      {showClearAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-paper brutal-block border-[var(--border-w)] border-ink max-w-sm w-full p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-stamp-red">
+              <Trash2 className="w-6 h-6" strokeWidth={2.5} />
+              <h3 className="font-display text-xl uppercase font-bold tracking-tight text-ink">Clear Chat</h3>
+            </div>
+            <p className="font-body text-sm font-medium text-ink/80 leading-relaxed">
+              Are you sure you want to clear this chat? This will remove all messages for you, but they will still be visible to the other person.
+            </p>
+            <div className="flex justify-end gap-3 mt-2">
+              <button
+                onClick={() => setShowClearAlert(false)}
+                className="brutal-block-sm px-4 py-2 bg-paper font-display text-sm uppercase font-bold hover:bg-highlighter transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmClearChat}
+                className="brutal-block-sm px-4 py-2 bg-stamp-red text-paper font-display text-sm uppercase font-bold hover:bg-ink transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MessageInputForm = ({
+  canSendCustom,
+  onSendMessage,
+  replyingTo,
+  onCancelReply,
+}: {
+  canSendCustom: boolean;
+  onSendMessage: (text: string) => void;
+  replyingTo?: ChatMessage | null;
+  onCancelReply?: () => void;
+}) => {
+  const [text, setText] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim() || !canSendCustom) return;
+    onSendMessage(text);
+    setText("");
+  };
+
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      {replyingTo && (
+        <div className="flex items-center justify-between bg-paper-blue border-[var(--border-w-sm)] border-ink brutal-block-sm p-3 gap-3">
+          <div className="flex flex-col min-w-0">
+            <span className="font-display text-[10px] uppercase font-bold text-ledger-blue">
+              Replying to {replyingTo.sender === (window as any).currentUserId ? "You" : getUserName(replyingTo.sender)}
+            </span>
+            <span className="font-body text-xs text-ink/70 truncate">
+              {replyingTo.text}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onCancelReply}
+            className="p-1 hover:bg-ink/10 rounded transition-colors shrink-0"
+          >
+            <X className="w-4 h-4 text-ink" />
+          </button>
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="flex items-center gap-3">
+        <input
+          type="text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={
+            canSendCustom
+              ? "Type a message..."
+              : "Unlock chat to type..."
+          }
+          disabled={!canSendCustom}
+          className="flex-1 min-w-0 bg-paper brutal-block-sm px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-4 font-body font-medium text-sm sm:text-base text-ink outline-none focus:ring-2 focus:ring-ledger-blue focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+        <button
+          type="submit"
+          disabled={!text.trim() || !canSendCustom}
+          className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 shrink-0 brutal-block-sm bg-signal-orange hover:bg-highlighter disabled:opacity-50 disabled:hover:bg-signal-orange text-ink rounded-none flex items-center justify-center transition-colors"
+        >
+          <Send className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ml-0.5 sm:ml-1" strokeWidth={2.5} />
+        </button>
+      </form>
     </div>
   );
 };

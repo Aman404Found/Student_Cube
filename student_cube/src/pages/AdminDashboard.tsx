@@ -39,7 +39,7 @@ const App = () => {
             onClick={() => selectTab("listings")}
             className={`flex items-center gap-2 px-6 py-3 font-display font-bold text-sm uppercase tracking-tight transition-colors ${
               activeTab === "listings"
-                ? "bg-highlighter text-ink brutal-block-sm"
+                ? "bg-highlighter text-[#0A0A0A] brutal-block-sm"
                 : "text-ink hover:bg-paper-blue"
             }`}
             style={activeTab === "listings" ? {} : { borderRadius: 'var(--radius)' }}
@@ -50,7 +50,7 @@ const App = () => {
             onClick={() => selectTab("ambassadors")}
             className={`flex items-center gap-2 px-6 py-3 font-display font-bold text-sm uppercase tracking-tight transition-colors ${
               activeTab === "ambassadors"
-                ? "bg-highlighter text-ink brutal-block-sm"
+               ? "bg-highlighter text-[#0A0A0A] brutal-block-sm"
                 : "text-ink hover:bg-paper-blue"
             }`}
             style={activeTab === "ambassadors" ? {} : { borderRadius: 'var(--radius)' }}

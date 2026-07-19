@@ -64,7 +64,7 @@ const ShippingExchange = () => {
             {/* Section 3 */}
             <section>
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 brutal-block-sm bg-highlighter text-ink">
+                <div className="p-2 brutal-block-sm bg-highlighter text-[#0A0A0A]">
                   <Eye className="w-5 h-5" strokeWidth={3} />
                 </div>
                 <h2 className="text-2xl font-display font-black text-ink uppercase tracking-tight">3. As-Is Inspections and Exchanges</h2>

@@ -66,6 +66,18 @@ function Loader({ children }: LoaderProps) {
     }
   }, [animationDone, windowLoaded, isReady, resolve]);
 
+  // ── Prevent scrolling while loader is active ──
+  useEffect(() => {
+    if (isVisible) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isVisible]);
+
   // ── GSAP animation: progress bar fill + wordmark entrance ──
   useGSAP(
     () => {
@@ -125,6 +137,19 @@ function Loader({ children }: LoaderProps) {
             transition-transform duration-700 ease-in-out
             ${isFadingOut ? "-translate-y-full" : "translate-y-0"}
           `}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'var(--color-highlighter, #FFE500)'
+          }}
           aria-hidden={isReady}
           role="progressbar"
           aria-valuemin={0}
@@ -179,6 +204,8 @@ function Loader({ children }: LoaderProps) {
         style={{
           visibility: isReady ? "visible" : "hidden",
           opacity: isReady ? 1 : 0,
+          height: isReady ? "auto" : 0,
+          overflow: isReady ? "visible" : "hidden",
           transition: "opacity 300ms ease-out",
         }}
       >

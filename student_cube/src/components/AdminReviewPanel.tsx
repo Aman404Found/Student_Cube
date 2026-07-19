@@ -261,7 +261,7 @@ const AdminReviewPanel = () => {
                   <h3 className="text-2xl font-display uppercase font-black text-ink tracking-tight">
                     {prod.name || prod.title}
                   </h3>
-                  <span className="bg-highlighter text-ink text-xs font-bold px-3 py-1 border-[var(--border-w-sm)] border-ink uppercase" style={{ borderRadius: 'var(--radius)' }}>
+                  <span className="bg-highlighter text-[#0A0A0A] text-xs font-bold px-3 py-1 border-[length:var(--border-w-sm)] border-ink uppercase" style={{ borderRadius: 'var(--radius)' }}>
                     {prod.condition}
                   </span>
                 </div>

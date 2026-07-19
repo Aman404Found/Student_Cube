@@ -163,20 +163,25 @@ wss.on('connection', async (ws, req) => {
             senderId: user._id,
             text: payload.text,
             kind: payload.kind || 'CUSTOM',
+            metadata: payload.metadata || {},
           });
 
           broadcastToOffer(offerId, {
             type: 'message',
             offerId,
             message: {
-              ...message.toObject(),
+              ...message,
               clientMessageId: payload.clientMessageId,
               deliveryStatus: 'sent',
             },
           });
-          sendToUser(message.sender, { type: 'chat_updated', offerId });
-          sendToUser(message.receiver, { type: 'chat_updated', offerId });
-          sendToUser(message.receiver, { type: 'unread_changed', offerId });
+          
+          const senderId = message.sender._id || message.sender;
+          const receiverId = message.receiver._id || message.receiver;
+
+          sendToUser(senderId, { type: 'chat_updated', offerId });
+          sendToUser(receiverId, { type: 'chat_updated', offerId });
+          sendToUser(receiverId, { type: 'unread_changed', offerId });
           return;
         }
 

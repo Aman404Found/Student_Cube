@@ -54,6 +54,17 @@ const chatSchema = new mongoose.Schema({
       required: true,
     },
   }],
+  clearedBy: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    clearedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  }],
   productLifecycleStatus: {
     type: String,
     enum: ['ACTIVE', 'PRODUCT_SOLD', 'PRODUCT_REMOVED'],

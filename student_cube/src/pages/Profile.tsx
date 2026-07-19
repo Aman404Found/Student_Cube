@@ -135,8 +135,8 @@ const Profile = () => {
     ["AVAILABLE", "RESERVED"].includes(status);
 
   const getStatusClass = (status: string) => {
-    if (status === "SOLD_OUT") return "bg-stamp-red text-paper border-[var(--border-w-sm)] border-ink";
-    if (status === "RESERVED") return "bg-highlighter text-ink border-[var(--border-w-sm)] border-ink";
+    if (status === "SOLD_OUT") return "bg-stamp-red text-paper border-[length:var(--border-w-sm)] border-ink";
+    if (status === "RESERVED") return "bg-highlighter text-[#0A0A0A] border-[length:var(--border-w-sm)] border-ink";
     if (status === "pending")
       return "bg-paper-blue text-ink border-[var(--border-w-sm)] border-ink";
     if (status === "rejected")
@@ -381,21 +381,21 @@ const Profile = () => {
               <div className="profile-animate bg-paper brutal-block p-2 flex overflow-x-auto gap-2 border-[var(--border-w)] border-ink">
                 <button
                   onClick={() => setActiveTab("overview")}
-                  className={`px-4 py-3 font-display uppercase font-bold text-base tracking-tight flex items-center gap-2 transition-colors shrink-0 ${activeTab === "overview" ? "bg-highlighter text-ink brutal-block-sm" : "text-ink/70 hover:bg-paper-blue"}`}
+                  className={`px-4 py-3 font-display uppercase font-bold text-base tracking-tight flex items-center gap-2 transition-colors shrink-0 ${activeTab === "overview" ? "bg-highlighter text-[#0A0A0A] brutal-block-sm" : "text-ink/70 hover:bg-paper-blue"}`}
                   style={{ borderRadius: 'var(--radius)' }}
                 >
                   <User className="w-4 h-4" /> Quick Overview
                 </button>
                 <button
                   onClick={() => setActiveTab("listings")}
-                  className={`px-4 py-3 font-display uppercase font-bold text-base tracking-tight flex items-center gap-2 transition-colors shrink-0 ${activeTab === "listings" ? "bg-highlighter text-ink brutal-block-sm" : "text-ink/70 hover:bg-paper-blue"}`}
+                  className={`px-4 py-3 font-display uppercase font-bold text-base tracking-tight flex items-center gap-2 transition-colors shrink-0 ${activeTab === "listings" ? "bg-highlighter text-[#0A0A0A] brutal-block-sm" : "text-ink/70 hover:bg-paper-blue"}`}
                   style={{ borderRadius: 'var(--radius)' }}
                 >
                   <Tag className="w-4 h-4" /> My Listings ({myListings.length})
                 </button>
                 <button
                   onClick={() => setActiveTab("offers")}
-                  className={`px-4 py-3 font-display uppercase font-bold text-base tracking-tight flex items-center gap-2 transition-colors shrink-0 ${activeTab === "offers" ? "bg-highlighter text-ink brutal-block-sm" : "text-ink/70 hover:bg-paper-blue"}`}
+                  className={`px-4 py-3 font-display uppercase font-bold text-base tracking-tight flex items-center gap-2 transition-colors shrink-0 ${activeTab === "offers" ? "bg-highlighter text-[#0A0A0A] brutal-block-sm" : "text-ink/70 hover:bg-paper-blue"}`}
                   style={{ borderRadius: 'var(--radius)' }}
                 >
                   <ShoppingBag className="w-4 h-4" /> My Offers & Purchases
@@ -635,7 +635,7 @@ const Profile = () => {
                                 ? "bg-campus-green text-paper"
                                 : offer.status === "REJECTED"
                                   ? "bg-stamp-red text-paper"
-                                  : "bg-highlighter text-ink"
+                                  : "bg-highlighter text-[#0A0A0A]"
                             }`}
                           >
                             Offer: {offer.status}

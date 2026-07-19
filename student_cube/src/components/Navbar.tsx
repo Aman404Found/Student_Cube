@@ -450,7 +450,7 @@ const Navbar = () => {
                     }}
                   />
                 ) : (
-                  <div className="w-9 h-9 bg-highlighter flex items-center justify-center text-ink font-display font-bold"
+                  <div className="w-9 h-9 bg-highlighter flex items-center justify-center text-[#0A0A0A] font-display font-bold"
                     style={{
                       border: "var(--border-w-sm) solid var(--color-ink)",
                       borderRadius: "var(--brutal-radius)",
