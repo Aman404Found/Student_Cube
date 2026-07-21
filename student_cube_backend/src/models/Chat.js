@@ -80,4 +80,8 @@ const chatSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+// Performance Indexes
+chatSchema.index({ participants: 1, lastMessageAt: -1 });
+chatSchema.index({ deleteAfter: 1 });
+
 export default mongoose.model('Chat', chatSchema);

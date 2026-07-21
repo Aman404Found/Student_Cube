@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import {
   ArrowLeft,
@@ -63,10 +64,37 @@ interface OfferType {
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: product, isLoading: loading } = useQuery<Product | null>({
+    queryKey: ['product', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const response = await api.get(`/products/${id}`);
+      return response.data.data;
+    },
+    enabled: !!id,
+    initialData: () => {
+      const queries = queryClient.getQueriesData({ queryKey: ['products'] });
+      for (const [, queryData] of queries) {
+        if (queryData && typeof queryData === 'object' && 'pages' in queryData) {
+          const pages = (queryData as any).pages;
+          for (const page of pages) {
+            const found = page.data?.find((p: any) => p._id === id);
+            if (found) return found;
+          }
+        }
+      }
+      return undefined;
+    },
+    initialDataUpdatedAt: () => {
+      // Force background refetch to get full seller details and fresh views
+      return Date.now() - 1000 * 60 * 10;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   const [activeImage, setActiveImage] = useState(0);
-  const fetchedProductIdRef = useRef<string | undefined>(undefined);
 
   // Seller Offer Management States
   const [isSellerModalOpen, setIsSellerModalOpen] = useState(false);
@@ -134,22 +162,7 @@ const ProductDetail = () => {
     }
   }, [product]);
 
-  useEffect(() => {
-    if (!id || fetchedProductIdRef.current === id) return;
-    fetchedProductIdRef.current = id;
 
-    const fetchProduct = async () => {
-      try {
-        const response = await api.get(`/products/${id}`);
-        setProduct(response.data.data);
-      } catch (error) {
-        console.error("Product fetch error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProduct();
-  }, [id]);
 
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [offerPrice, setOfferPrice] = useState("");
@@ -224,7 +237,7 @@ const ProductDetail = () => {
     try {
       const res = await api.put(`/products/${product?._id}/mark-sold`);
       toast.success(res.data.message || "Product marked as sold");
-      setProduct(res.data.data);
+      queryClient.setQueryData(['product', id], res.data.data);
       setIsSellerModalOpen(false);
     } catch (error) {
       let errorMsg = "Failed to mark product as sold";

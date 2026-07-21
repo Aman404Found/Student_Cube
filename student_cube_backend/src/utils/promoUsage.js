@@ -18,10 +18,9 @@ export const hasConsumedPromoBenefit = async (sellerId) => {
     }),
     Product.exists(usedPromoProductQuery(sellerId)),
   ]);
-
+  
   return Boolean(successfulReferral || activePromoProduct);
 };
-
 export const releaseRejectedPromoUse = async (product) => {
   if (!product?.appliedPromoCode || !product?.seller) return;
 

@@ -179,7 +179,7 @@ const getChatOffers = async (chat) => {
       { buyer: p1, seller: p2 },
       { buyer: p2, seller: p1 }
     ]
-  });
+  }).lean();
 };
 
 const findChatByOffer = async (offerId) => {
@@ -196,26 +196,31 @@ const findChatByOffer = async (offerId) => {
 };
 
 export const cleanupExpiredProductChats = async () => {
-  const expiredChats = await Chat.find({
-    deleteAfter: { $ne: null, $lte: new Date() },
-  }).select('_id offer product participants');
+  try {
+    const expiredChats = await Chat.find({
+      deleteAfter: { $ne: null, $lte: new Date() },
+    }).select('_id offer product participants');
 
-  if (expiredChats.length === 0) return 0;
+    if (expiredChats.length === 0) return 0;
 
-  const chatIds = expiredChats.map((chat) => chat._id);
-  const offerIdSet = new Set();
-  for (const chat of expiredChats) {
-    const chatOffers = await getChatOffers(chat);
-    chatOffers.forEach((offer) => offerIdSet.add(offer._id.toString()));
+    const chatIds = expiredChats.map((chat) => chat._id);
+    const offerIdSet = new Set();
+    for (const chat of expiredChats) {
+      const chatOffers = await getChatOffers(chat);
+      chatOffers.forEach((offer) => offerIdSet.add(offer._id.toString()));
+    }
+    const offerIds = [...offerIdSet];
+    await Message.deleteMany({ chat: { $in: chatIds } });
+    await Chat.deleteMany({ _id: { $in: chatIds } });
+    if (offerIds.length > 0) {
+      await Offer.deleteMany({ _id: { $in: offerIds } });
+    }
+
+    return chatIds.length;
+  } catch (error) {
+    console.error('Error during cleanupExpiredProductChats:', error);
+    return 0;
   }
-  const offerIds = [...offerIdSet];
-  await Message.deleteMany({ chat: { $in: chatIds } });
-  await Chat.deleteMany({ _id: { $in: chatIds } });
-  if (offerIds.length > 0) {
-    await Offer.deleteMany({ _id: { $in: offerIds } });
-  }
-
-  return chatIds.length;
 };
 
 const deleteExpiredChatWithOffer = async (chat) => {
@@ -261,7 +266,7 @@ export const recordChatMessage = async ({
 };
 
 export const markChatReadByOffer = async (offerId, userId) => {
-  await cleanupExpiredProductChats();
+  cleanupExpiredProductChats();
 
   const chat = await findChatByOffer(offerId);
   if (!chat) {
@@ -354,7 +359,7 @@ export const markProductChatsForLifecycle = async ({ productId, status, message 
 };
 
 export const sendChatMessage = async ({ offerId, senderId, text, kind = 'CUSTOM', metadata = {} }) => {
-  await cleanupExpiredProductChats();
+  cleanupExpiredProductChats();
 
   const offer = await Offer.findById(offerId)
     .populate('product', '_id title price images')
@@ -421,7 +426,6 @@ export const sendChatMessage = async ({ offerId, senderId, text, kind = 'CUSTOM'
 };
 
 export const getChatWithMessages = async (offerId, userId) => {
-  await cleanupExpiredProductChats();
 
   const offer = await Offer.findById(offerId)
     .populate('product', '_id title price images')
@@ -458,12 +462,13 @@ export const getChatWithMessages = async (offerId, userId) => {
   })
     .sort({ createdAt: 1 })
     .populate('sender', '_id name username')
-    .populate('receiver', '_id name username');
+    .populate('receiver', '_id name username')
+    .lean();
 
   const messageOfferIds = [
     ...new Set(messages.map((message) => getId(message.offerId)?.toString()).filter(Boolean)),
   ];
-  const messageOffers = await Offer.find({ _id: { $in: messageOfferIds } });
+  const messageOffers = await Offer.find({ _id: { $in: messageOfferIds } }).lean();
   const offersById = new Map(
     messageOffers.map((messageOffer) => [messageOffer._id.toString(), messageOffer]),
   );

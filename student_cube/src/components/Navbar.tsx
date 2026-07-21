@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { EASE_SNAP, prefersReducedMotion } from "../lib/motion";
@@ -32,8 +33,36 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [hasUnreadChats, setHasUnreadChats] = useState(false);
   const navRef = useRef<HTMLElement>(null);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  const { data: hasUnreadChats } = useQuery({
+    queryKey: ['unreadChats'],
+    queryFn: async () => {
+      if (!user) return false;
+      const res = await api.get("/chat/unread");
+      return Boolean(res.data.hasUnread);
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60, // 1 minute
+    refetchOnWindowFocus: true, // Natively handles the "focus" window event
+  });
+
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const isAmbassador = user?.role?.toLowerCase() === "ambassador";
+
+  const { data: hasPendingProducts } = useQuery({
+    queryKey: ['pendingProducts'],
+    queryFn: async () => {
+      if (!isAdmin) return false;
+      const res = await api.get("/products/admin/pending");
+      return Boolean(res.data.total > 0);
+    },
+    enabled: !!isAdmin,
+    staleTime: 1000 * 60, // 1 minute
+    refetchOnWindowFocus: true,
+  });
 
   // Navbar entrance animation - ties into loader resolve
   useGSAP(() => {
@@ -56,10 +85,6 @@ const Navbar = () => {
     );
   }, { scope: navRef });
 
-  const { user } = useAuth();
-  const isAdmin = user?.role?.toLowerCase() === "admin";
-  const isAmbassador = user?.role?.toLowerCase() === "ambassador";
-
   const navItems = [
     { name: "Home", icon: Home, path: "/" },
     { name: "Buy", icon: ShoppingBag, path: "/buy" },
@@ -68,34 +93,15 @@ const Navbar = () => {
   ];
 
   useEffect(() => {
-    const fetchUnreadChats = async () => {
-      if (!user) {
-        setHasUnreadChats(false);
-        return;
-      }
-
-      try {
-        const res = await api.get("/chat/unread");
-        setHasUnreadChats(Boolean(res.data.hasUnread));
-      } catch (error) {
-        console.error("Failed to fetch unread chats:", error);
-        setHasUnreadChats(false);
-      }
+    const handleReadChange = () => {
+      queryClient.invalidateQueries({ queryKey: ['unreadChats'] });
     };
 
-    fetchUnreadChats();
-
-    window.addEventListener("focus", fetchUnreadChats);
-    window.addEventListener("student-cube-chat-read-change", fetchUnreadChats);
-
+    window.addEventListener("student-cube-chat-read-change", handleReadChange);
     return () => {
-      window.removeEventListener("focus", fetchUnreadChats);
-      window.removeEventListener(
-        "student-cube-chat-read-change",
-        fetchUnreadChats,
-      );
+      window.removeEventListener("student-cube-chat-read-change", handleReadChange);
     };
-  }, [user, location.pathname]);
+  }, [queryClient]);
 
   // TypeScript typing added to 'e' parameter
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -214,8 +220,8 @@ const Navbar = () => {
         <div className="flex items-center shrink-0 gap-3">
           <ThemeToggle />
           {isAdmin && (
-            <Link to="/admin">
-              <button className="flex items-center gap-2 px-4 py-2 bg-ledger-blue text-paper font-body font-bold text-sm uppercase tracking-wide brutal-focus cursor-pointer transition-all duration-120 hover:translate-y-[-2px]"
+            <Link to="/admin" className="relative">
+              <button className="flex items-center gap-2 px-4 py-2 bg-ledger-blue text-paper font-body font-bold text-sm uppercase tracking-wide brutal-focus cursor-pointer "
                 style={{
                   border: "var(--border-w) solid var(--color-ink)",
                   boxShadow: "var(--shadow-off) var(--shadow-off) 0 0 var(--color-ink)",
@@ -225,6 +231,14 @@ const Navbar = () => {
                 <ShieldAlert className="w-4 h-4 text-highlighter" />
                 Admin
               </button>
+              {hasPendingProducts && (
+                <span className="absolute -right-1.5 -top-1.5 w-3 h-3 bg-stamp-red z-5"
+                  style={{
+                    border: "var(--border-w-sm) solid var(--color-ink)",
+                    borderRadius: "var(--brutal-radius)",
+                  }}
+                />
+              )}
             </Link>
           )}
           {isAmbassador && (
@@ -391,7 +405,7 @@ const Navbar = () => {
           >
             {isAdmin && (
               <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)}>
-                <button className="w-full py-3 px-4 bg-ledger-blue text-paper font-body font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 cursor-pointer transition-all duration-120 hover:translate-y-[-2px]"
+                <button className="w-full relative py-3 px-4 bg-ledger-blue text-paper font-body font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 cursor-pointer transition-all duration-120 hover:translate-y-[-2px]"
                   style={{
                     border: "var(--border-w) solid var(--color-ink)",
                     boxShadow: "var(--shadow-off) var(--shadow-off) 0 0 var(--color-ink)",
@@ -400,6 +414,14 @@ const Navbar = () => {
                 >
                   <ShieldAlert className="w-4 h-4 text-highlighter" />
                   Admin Portal
+                  {hasPendingProducts && (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 bg-stamp-red"
+                      style={{
+                        border: "var(--border-w-sm) solid var(--color-ink)",
+                        borderRadius: "var(--brutal-radius)",
+                      }}
+                    />
+                  )}
                 </button>
               </Link>
             )}

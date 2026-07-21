@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../utils/api";
 import { getProductImageUrl } from "../utils/productImages";
 import type { ProductImageValue } from "../utils/productImages";
@@ -306,7 +307,7 @@ const MessagesPane = ({
 
     return (
       <div
-        className={`w-full max-w-sm brutal-block border-[var(--border-w)] ${borderColor} ${bgColor} p-4 md:p-6 text-ink shadow-none`}
+        className={`w-full max-w-sm brutal-block border-[length:var(--border-w)] ${borderColor} ${bgColor} p-4 md:p-6 text-ink shadow-none`}
       >
         <div className="flex items-center justify-between mb-4">
           <span className={`font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${status === "accepted" || status === "rejected" || status === "revoked" ? "text-ink" : "text-ink/70"}`}>
@@ -355,7 +356,7 @@ const MessagesPane = ({
                 type="button"
                 disabled={Boolean(offerActionLoading)}
                 onClick={() => onOfferAction(offerCardId, "revoke")}
-                className="w-full brutal-block-sm bg-ink px-3 py-3 font-display uppercase text-sm font-bold text-paper hover:bg-stamp-red hover:text-paper disabled:opacity-50 transition-colors"
+                className="w-full brutal-block-sm bg-paper px-3 py-3 font-display uppercase text-sm font-bold text-stamp-red hover:bg-stamp-red hover:text-paper disabled:opacity-50 transition-colors"
               >
                 Cancel Offer
               </button>
@@ -379,7 +380,7 @@ const MessagesPane = ({
           </div>
         ) : messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-ink/50">
-            <div className="w-16 h-16 bg-paper border-[var(--border-w)] border-ink flex items-center justify-center mb-6 shadow-sm" style={{ borderRadius: 'var(--radius)' }}>
+            <div className="w-16 h-16 bg-paper border-[length:var(--border-w)] border-ink flex items-center justify-center mb-6 shadow-sm" style={{ borderRadius: 'var(--radius)' }}>
               <Send className="w-6 h-6 text-ink/30" />
             </div>
             <p className="font-display text-xl font-bold uppercase text-ink">No messages yet.</p>
@@ -469,11 +470,11 @@ const MessagesPane = ({
                       </div>
 
                       {msg.metadata?.replyTo && (
-                        <div className={`mb-2 px-3 py-1.5 flex flex-col gap-0.5 rounded-r border-l-4 ${isMe ? "bg-black/10 border-paper" : "bg-black/5 border-ledger-blue"}`}>
-                          <span className={`font-display text-[9px] uppercase font-bold ${isMe ? "text-paper" : "text-ledger-blue"}`}>
+                        <div className={`mb-2 px-3 py-1.5 flex flex-col gap-0.5 rounded-r border-l-4 ${isMe ? "bg-black/20 border-paper" : "bg-black/5 border-ledger-blue"}`}>
+                          <span className={`font-display text-[10px] uppercase font-bold ${isMe ? "text-paper" : "text-ledger-blue"}`}>
                             {msg.metadata.replyTo.senderName}
                           </span>
-                          <span className="font-body text-xs opacity-90 line-clamp-2">
+                          <span className={`font-body text-xs line-clamp-2 ${isMe ? "text-paper/90" : "text-ink/90"}`}>
                             {msg.metadata.replyTo.text}
                           </span>
                         </div>
@@ -545,7 +546,16 @@ const Chat = () => {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
-  const [chats, setChats] = useState<ChatListItem[]>([]);
+  const queryClient = useQueryClient();
+
+  const { data: chats = [], isLoading: isChatsLoading } = useQuery<ChatListItem[]>({
+    queryKey: ['chatInbox'],
+    queryFn: async () => {
+      const res = await api.get("/chat");
+      return res.data.data || [];
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [prePaymentMessages, setPrePaymentMessages] = useState<string[]>([]);
   const [canSendCustom, setCanSendCustom] = useState(false);
@@ -569,6 +579,7 @@ const Chat = () => {
   const [showClearAlert, setShowClearAlert] = useState(false);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const lastSentAtRef = useRef<number>(0);
 
   useGSAP(() => {
     if (prefersReducedMotion()) return;
@@ -638,7 +649,7 @@ const Chat = () => {
 
     try {
       await api.put(`/chat/${nextOfferId}/read`);
-      setChats((current) =>
+      queryClient.setQueryData<ChatListItem[]>(['chatInbox'], (current = []) =>
         current.map((chat) =>
           chat.offerId === nextOfferId ? { ...chat, hasUnread: false } : chat,
         ),
@@ -649,83 +660,77 @@ const Chat = () => {
     }
   };
 
-  const fetchChats = useCallback(async () => {
-    try {
-      const res = await api.get("/chat");
-      setChats(res.data.data || []);
-    } catch (error) {
-      console.error("Failed to load chats:", error);
-    } finally {
-      if (!offerId) setIsLoading(false);
-    }
-  }, [offerId]);
+  // Removed fetchChats since React Query handles it automatically.
+  // Invalidations will trigger a refetch in the background.
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchChats();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [fetchChats]);
-
-  const fetchCurrentChat = useCallback(
-    async (silent = false) => {
-      if (!offerId) return;
-
-      if (!silent) {
-        setIsLoading(true);
-        setMessages([]); // Clear previous chat messages immediately
-      }
-      try {
-        const res = await api.get(`/chat/${offerId}`);
-        setMessages(res.data.data || []);
-        setCanSendCustom(Boolean(res.data.canSendCustom));
-        setLockedMessage(res.data.lockedMessage);
-        setLifecycle(res.data.lifecycle || null);
-        setPrePaymentMessages(res.data.prePaymentMessages || []);
-        setChatTitle(
-          res.data.alias || res.data.product?.title || "Product Chat",
-        );
-        setChatProduct(res.data.product || null);
-
-        const buyerId = getUserId(res.data.buyer);
-        const sellerId = getUserId(res.data.seller);
-        setChatSellerId(sellerId);
-        setOtherUser(
-          buyerId === currentUserId ? res.data.seller : res.data.buyer,
-        );
-        markCurrentChatRead(offerId);
-      } catch {
-        toast.error("Unable to open this chat.");
-        navigate("/chat", { replace: true });
-      } finally {
-        setIsLoading(false);
-      }
+  const { data: chatData, isLoading: isQueryLoading, isError } = useQuery({
+    queryKey: ['chatHistory', offerId],
+    queryFn: async () => {
+      if (!offerId) return null;
+      const res = await api.get(`/chat/${offerId}`);
+      return res.data;
     },
-    [offerId, currentUserId, navigate],
-  );
+    enabled: !!offerId,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchCurrentChat();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [fetchCurrentChat]);
+    if (isError) {
+      toast.error("Unable to open this chat.");
+      navigate("/chat", { replace: true });
+    }
+  }, [isError, navigate]);
+
+  useEffect(() => {
+    if (offerId && chatData?.success) {
+      setMessages(chatData.data || []);
+      setCanSendCustom(Boolean(chatData.canSendCustom));
+      setLockedMessage(chatData.lockedMessage);
+      setLifecycle(chatData.lifecycle || null);
+      setPrePaymentMessages(chatData.prePaymentMessages || []);
+      setChatTitle(
+        chatData.alias || chatData.product?.title || "Product Chat",
+      );
+      setChatProduct(chatData.product || null);
+
+      const buyerId = getUserId(chatData.buyer);
+      const sellerId = getUserId(chatData.seller);
+      setChatSellerId(sellerId);
+      setOtherUser(
+        buyerId === currentUserId ? chatData.seller : chatData.buyer,
+      );
+      markCurrentChatRead(offerId);
+      setIsLoading(false);
+    }
+  }, [chatData, offerId, currentUserId]);
+
+  useEffect(() => {
+    if (isQueryLoading) {
+      // Clear chat only when actually fetching new uncached data
+      setIsLoading(true);
+      setMessages([]);
+    }
+  }, [isQueryLoading]);
 
   useEffect(() => {
     let timeoutId: number;
 
     const handleRealtime = (event: Event) => {
       const payload = (event as CustomEvent).detail || {};
+      const eventOfferId = payload.offerId;
 
       window.clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => {
-        fetchChats();
-        if (
-          payload.type !== "unread_changed" &&
-          payload.type !== "chat_updated" &&
-          offerId
-        ) {
-          fetchCurrentChat(true);
+        queryClient.invalidateQueries({ queryKey: ['chatInbox'] });
+
+        if (eventOfferId) {
+          if (eventOfferId !== offerId) {
+            queryClient.invalidateQueries({ queryKey: ['chatHistory', eventOfferId] });
+          } else {
+            if (payload.type === "offer_updated" || payload.type === "payment_updated") {
+              queryClient.invalidateQueries({ queryKey: ['chatHistory', eventOfferId] });
+            }
+          }
         }
       }, 500);
     };
@@ -735,7 +740,7 @@ const Chat = () => {
       window.removeEventListener("student-cube-realtime", handleRealtime);
       window.clearTimeout(timeoutId);
     };
-  }, [fetchChats, fetchCurrentChat, offerId]);
+  }, [offerId, queryClient]);
 
   useEffect(() => {
     if (!offerId || !token) return;
@@ -754,6 +759,8 @@ const Chat = () => {
         const payload = JSON.parse(event.data);
 
         if (payload.type === "message") {
+          if (payload.offerId && payload.offerId !== offerId) return;
+
           setMessages((prev) => {
             // Deduplicate or replace optimistic messages using clientMessageId
             if (payload.message?.clientMessageId) {
@@ -797,6 +804,18 @@ const Chat = () => {
 
         if (payload.type === "error") {
           toast.error(payload.message || "Chat error.");
+        }
+
+        if (payload.type === "chat_read") {
+          if (payload.offerId === offerId) {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.deliveryStatus !== "read" && getUserId(msg.sender) === currentUserId
+                  ? { ...msg, deliveryStatus: "read" }
+                  : msg
+              )
+            );
+          }
         }
       } catch (error) {
         console.error("Invalid chat socket message:", error);
@@ -878,7 +897,7 @@ const Chat = () => {
               toast.success("Payment Successful! Chat Unlocked.", {
                 id: verifyToastId,
               });
-              fetchCurrentChat(true);
+              queryClient.invalidateQueries({ queryKey: ['chatHistory', offerId] });
               setCanSendCustom(true);
             } else {
               toast.error("Payment verification failed.", {
@@ -917,6 +936,8 @@ const Chat = () => {
   const sendMessage = (text: string, kind: "CUSTOM" | "PREDEFINED") => {
     const trimmedText = text.trim();
     if (!offerId || !trimmedText) return;
+
+    lastSentAtRef.current = Date.now();
 
     if (!canSendCustom && kind === "CUSTOM") {
       toast.error(
@@ -1034,8 +1055,8 @@ const Chat = () => {
 
       setChatOfferPrice("");
       setIsOfferBoxOpen(false);
-      fetchCurrentChat(true);
-      fetchChats();
+      queryClient.invalidateQueries({ queryKey: ['chatHistory', offerId] });
+      queryClient.invalidateQueries({ queryKey: ['chatInbox'] });
     } catch (error: unknown) {
       let message = "Unable to send offer.";
       if (
@@ -1114,11 +1135,11 @@ const Chat = () => {
       ref={sidebarRef}
       className={`${offerId ? "hidden md:flex" : "flex"} w-full md:w-80 lg:w-96 shrink-0 flex-col border-r-[length:var(--border-w)] border-ink bg-paper z-20 relative`}
     >
-      <div className="px-6 py-5 border-b-[var(--border-w)] border-ink shrink-0 bg-highlighter">
+      <div className="px-6 py-5 border-b-[length:var(--border-w)] border-ink shrink-0 bg-highlighter">
         <h1 className="text-2xl font-display font-black uppercase tracking-tight text-[#0A0A0A]">Messages</h1>
       </div>
       <div className="flex-1 overflow-y-auto bg-paper">
-        {isLoading && chats.length === 0 ? (
+        {isChatsLoading && chats.length === 0 ? (
           <div className="flex justify-center py-20">
             <BrutalLoader size="sm" />
           </div>
@@ -1140,7 +1161,7 @@ const Chat = () => {
                   {chat.hasUnread && (
                     <span className="absolute right-4 top-4 w-3 h-3 bg-stamp-red border-[2px] border-ink" style={{ borderRadius: 'var(--radius)' }} />
                   )}
-                  <div className="w-14 h-14 bg-paper-blue border-[var(--border-w)] border-ink overflow-hidden shrink-0" style={{ borderRadius: 'var(--radius)' }}>
+                  <div className="w-14 h-14 bg-paper-blue border-[length:var(--border-w)] border-ink overflow-hidden shrink-0" style={{ borderRadius: 'var(--radius)' }}>
                     {chat.product?.images?.[0] ? (
                       <img
                         src={getProductImageUrl(chat.product.images[0])}
@@ -1184,10 +1205,10 @@ const Chat = () => {
 
   if (!offerId) {
     return (
-      <div className="h-[calc(100vh-80px)] overflow-hidden bg-paper flex w-full relative">
+      <div className="h-[calc(100dvh-80px)] overflow-hidden bg-paper flex w-full relative">
         {sidebar}
         <div className="hidden md:flex flex-1 flex-col items-center justify-center text-ink/40 bg-paper">
-          <div className="w-20 h-20 bg-paper-blue border-[var(--border-w)] border-ink flex items-center justify-center mb-6" style={{ borderRadius: 'var(--radius)' }}>
+          <div className="w-20 h-20 bg-paper-blue border-[length:var(--border-w)] border-ink flex items-center justify-center mb-6" style={{ borderRadius: 'var(--radius)' }}>
             <MessageSquare className="w-8 h-8 text-ink/30" />
           </div>
           <p className="font-display text-2xl font-bold uppercase tracking-tight text-ink">Select a conversation</p>
@@ -1198,10 +1219,10 @@ const Chat = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] overflow-hidden bg-paper flex w-full relative">
+    <div className="h-[calc(100dvh-80px)] overflow-hidden bg-paper flex w-full relative">
       {sidebar}
       <div ref={chatRef} className="flex-1 flex flex-col min-w-0 bg-paper">
-        <div className="bg-paper px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center gap-2 sm:gap-4 border-b-[var(--border-w)] border-ink shadow-none z-10 shrink-0">
+        <div className="bg-paper px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center gap-2 sm:gap-4 border-b-[length:var(--border-w)] border-ink shadow-none z-10 shrink-0">
           <button
             onClick={() => navigate("/chat")}
             className="p-2 sm:p-3 bg-paper border-[var(--border-w-sm)] border-ink hover:bg-highlighter brutal-block-sm transition-colors md:hidden shrink-0"
@@ -1209,7 +1230,7 @@ const Chat = () => {
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-ink" strokeWidth={2.5} />
           </button>
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-ledger-blue border-[var(--border-w)] border-ink flex items-center justify-center text-paper shrink-0" style={{ borderRadius: 'var(--radius)' }}>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-ledger-blue border-[length:var(--border-w)] border-ink flex items-center justify-center text-paper shrink-0" style={{ borderRadius: 'var(--radius)' }}>
               <User className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0 flex-1">
@@ -1242,7 +1263,7 @@ const Chat = () => {
         </div>
 
         {!canSendCustom && lockedMessage && (
-          <div className="bg-stamp-red border-b-[var(--border-w)] border-ink px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-paper font-bold font-body flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
+          <div className="bg-stamp-red border-b-[length:var(--border-w)] border-ink px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-xs sm:text-sm text-paper font-bold font-body flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
             <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0 text-paper w-full">
               <Lock className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 mt-0.5 sm:mt-0" strokeWidth={2.5} />
               <span className="leading-snug flex-1">{lockedMessage}</span>
@@ -1292,13 +1313,13 @@ const Chat = () => {
                 <button
                   type="button"
                   onClick={() => scrollQuickMessages('left')}
-                  className="p-1 sm:p-1.5 bg-ink text-paper hover:bg-ledger-blue shrink-0 transition-all absolute left-0 z-10 -ml-2 sm:-ml-4 hidden md:flex mt-1"
+                  className="p-1 sm:p-1.5 bg-ink text-paper hover:bg-ledger-blue shrink-0 transition-all absolute left-0 z-10 -ml-2 sm:-ml-4 flex mt-1"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
               )}
-              
-              <div 
+
+              <div
                 ref={quickMessagesRef}
                 onScroll={handleQuickMessagesScroll}
                 className="flex gap-2 sm:gap-3 overflow-x-auto no-scrollbar scroll-smooth flex-1 px-1 pb-3"
@@ -1319,7 +1340,7 @@ const Chat = () => {
                 <button
                   type="button"
                   onClick={() => scrollQuickMessages('right')}
-                  className="p-1 sm:p-1.5 bg-ink text-paper hover:bg-ledger-blue shrink-0 transition-all absolute right-0 z-10 -mr-2 sm:-mr-4 hidden md:flex mt-1"
+                  className="p-1 sm:p-1.5 bg-ink text-paper hover:bg-ledger-blue shrink-0 transition-all absolute right-0 z-10 -mr-2 sm:-mr-4 flex mt-1"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -1330,7 +1351,7 @@ const Chat = () => {
           {isOfferBoxOpen && (
             <form
               onSubmit={handleChatOfferSubmit}
-              className="mb-4 flex flex-wrap sm:flex-nowrap gap-3 bg-paper p-4 brutal-block border-[var(--border-w)] border-ink"
+              className="mb-4 flex flex-wrap sm:flex-nowrap gap-3 bg-paper p-4 brutal-block border-[length:var(--border-w)] border-ink"
             >
               <div className="relative flex-1 min-w-[200px]">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-ink">
@@ -1382,7 +1403,7 @@ const Chat = () => {
 
       {showClearAlert && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-paper brutal-block border-[var(--border-w)] border-ink max-w-sm w-full p-6 flex flex-col gap-4">
+          <div className="bg-paper brutal-block border-[length:var(--border-w)] border-ink max-w-sm w-full p-6 flex flex-col gap-4">
             <div className="flex items-center gap-3 text-stamp-red">
               <Trash2 className="w-6 h-6" strokeWidth={2.5} />
               <h3 className="font-display text-xl uppercase font-bold tracking-tight text-ink">Clear Chat</h3>

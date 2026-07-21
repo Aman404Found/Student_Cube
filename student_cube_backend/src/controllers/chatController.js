@@ -45,7 +45,7 @@ const getChatAlias = (chat, userId) => {
 
 export const getMyChats = async (req, res) => {
   try {
-    await cleanupExpiredProductChats();
+    // Removed blocking background cleanup task
 
     const chats = await Chat.find({ participants: req.user._id })
       .sort({ lastMessageAt: -1, updatedAt: -1 })
@@ -57,7 +57,8 @@ export const getMyChats = async (req, res) => {
           { path: 'buyer', select: '_id name username' },
           { path: 'seller', select: '_id name username' },
         ],
-      });
+      })
+      .lean();
 
     const data = await Promise.all(chats.map(async (chat) => {
       const offer = chat.offer;
@@ -109,10 +110,11 @@ export const getMyChats = async (req, res) => {
 
 export const getUnreadChatSummary = async (req, res) => {
   try {
-    await cleanupExpiredProductChats();
+    // Removed blocking background cleanup task
 
     const chats = await Chat.find({ participants: req.user._id })
-      .select('lastMessageAt lastMessageSender readBy participants deleteAfter');
+      .select('lastMessageAt lastMessageSender readBy participants deleteAfter')
+      .lean();
 
     const hasUnread = chats.some((chat) => getChatReadState(chat, req.user._id).hasUnread);
 
@@ -128,6 +130,13 @@ export const markChatRead = async (req, res) => {
     const { offerId } = req.params;
     const chat = await markChatReadByOffer(offerId, req.user._id);
     notifyUser(req.user._id, { type: 'unread_changed', offerId });
+
+    const otherParticipantId = chat.participants.find(
+      (p) => p.toString() !== req.user._id.toString()
+    );
+    if (otherParticipantId) {
+      notifyUser(otherParticipantId, { type: 'chat_read', offerId, readBy: req.user._id });
+    }
 
     res.status(200).json({
       success: true,

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import compression from 'compression';
 import connectDB from './config/db.js';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
@@ -35,7 +36,10 @@ const __dirname = path.dirname(__filename);
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// 1. CORS Setup
+// 1. Compression Setup (Gzip)
+app.use(compression());
+
+// 2. CORS Setup
 app.use(cors({
   origin: [
     'http://localhost:5173', 

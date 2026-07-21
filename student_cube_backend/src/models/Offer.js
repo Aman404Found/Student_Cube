@@ -52,4 +52,9 @@ paidAt: {
 
 }, { timestamps: true });
 
+// Performance Indexes
+offerSchema.index({ product: 1, buyer: 1, seller: 1 });
+offerSchema.index({ buyer: 1 });
+offerSchema.index({ seller: 1 });
+
 export default mongoose.model('Offer', offerSchema);

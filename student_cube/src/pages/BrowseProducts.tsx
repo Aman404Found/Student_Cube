@@ -1,19 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  Search,
-  ChevronDown,
-  Filter,
-  MapPin,
-  Eye,
-  Clock,
-  Laptop,
-  X 
-} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, ChevronDown, X, Filter, MapPin, Eye, Clock, Laptop } from "lucide-react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import api from "../utils/api";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import ScrollToTopButton from "../components/ScrollToTopButton";
 import { getProductImageUrl } from "../utils/productImages";
-import type { ProductImageValue } from "../utils/productImages";
 import { ALL_COLLEGES_FILTER, COLLEGE_FILTER_OPTIONS } from "../utils/colleges";
 import Footer from "../components/FooterMin";
 import { BrutalCard, BrutalCardImage, BrutalCardContent, BrutalCardFooter } from "../components/ui/brutal-card";
@@ -25,24 +16,6 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { EASE_SNAP, prefersReducedMotion, STAGGER_GAP } from "../lib/motion";
 
-interface Product {
-  _id: string;
-  name?: string;
-  title?: string;
-  category: string;
-  condition: string;
-  price: number;
-  originalPrice?: number;
-  location?: string;
-  college?: string;
-  images: ProductImageValue[];
-  status?: string;
-  views?: number;
-  createdAt: string;
-  seller?: {
-    username?: string;
-  };
-}
 
 const filterOptions = {
   Category: [
@@ -60,11 +33,6 @@ const PRODUCT_PAGE_SIZE = 20;
 
 const BrowseProducts = () => {
   // 1. DATA STATES
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(1);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -113,55 +81,52 @@ const BrowseProducts = () => {
     return () => window.clearTimeout(timeoutId);
   }, [searchInput, searchQuery, setSearchParams]);
 
-  const fetchProducts = useCallback(async (pageToLoad: number, replace = false) => {
-    if (replace) {
-      setLoading(true);
-    } else {
-      setLoadingMore(true);
-    }
+  const fetchProductsPage = async ({ pageParam = 1 }) => {
+    const params = new URLSearchParams({
+      page: String(pageParam),
+      limit: String(PRODUCT_PAGE_SIZE),
+    });
 
-    try {
-      const params = new URLSearchParams({
-        page: String(pageToLoad),
-        limit: String(PRODUCT_PAGE_SIZE),
-      });
+    if (searchQuery.trim()) params.set("search", searchQuery.trim());
+    if (selectedCollege !== ALL_COLLEGES_FILTER) params.set("college", selectedCollege);
+    if (selectedCategory) params.set("category", selectedCategory);
+    if (selectedCondition) params.set("condition", selectedCondition);
+    if (selectedPriceRange) params.set("price", selectedPriceRange);
 
-      if (searchQuery.trim()) params.set("search", searchQuery.trim());
-      if (selectedCollege !== ALL_COLLEGES_FILTER) params.set("college", selectedCollege);
-      if (selectedCategory) params.set("category", selectedCategory);
-      if (selectedCondition) params.set("condition", selectedCondition);
-      if (selectedPriceRange) params.set("price", selectedPriceRange);
+    const response = await api.get(`/products?${params.toString()}`);
+    return response.data;
+  };
 
-      const response = await api.get(`/products?${params.toString()}`);
-      const nextProducts = response.data.data || [];
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    status
+  } = useInfiniteQuery({
+    queryKey: ['products', searchQuery, selectedCollege, selectedCategory, selectedCondition, selectedPriceRange],
+    queryFn: fetchProductsPage,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.pagination?.hasMore ? allPages.length + 1 : undefined;
+    },
+    staleTime: 1000 * 60 * 5, // cache for 5 minutes
+  });
 
-      setProducts((current) => replace ? nextProducts : [...current, ...nextProducts]);
-      setPage(pageToLoad);
-      setHasMore(Boolean(response.data.pagination?.hasMore));
-    } catch (error) {
-      console.error("Products lane mein error:", error);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [searchQuery, selectedCollege, selectedCategory, selectedCondition, selectedPriceRange]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      await fetchProducts(1, true);
-    };
-    
-    loadData();
-  }, [fetchProducts]);
+  const products = data?.pages.flatMap(page => page.data || []) || [];
+  const loading = status === 'pending';
+  const loadingMore = isFetchingNextPage;
+  const hasMore = hasNextPage;
 
   useEffect(() => {
     const sentinel = loadMoreRef.current;
-    if (!sentinel || loading || loadingMore || !hasMore) return;
+    if (!sentinel || isFetching || !hasNextPage) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          fetchProducts(page + 1);
+        if (entry.isIntersecting && !isFetchingNextPage) {
+          fetchNextPage();
         }
       },
       { rootMargin: "300px" },
@@ -169,7 +134,7 @@ const BrowseProducts = () => {
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [fetchProducts, hasMore, loading, loadingMore, page]);
+  }, [hasNextPage, isFetching, isFetchingNextPage, fetchNextPage]);
 
   // Step B: GSAP entrance animation for grid
   useGSAP(() => {

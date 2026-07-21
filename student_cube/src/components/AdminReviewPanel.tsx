@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { getProductImageUrl } from "../utils/productImages";
 import type { ProductImageValue } from "../utils/productImages";
 import { BrutalLoader } from "../components/ui/brutal-loader";
+import { useQueryClient } from "@tanstack/react-query";
 
 const BACKEND_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
@@ -49,6 +50,7 @@ interface PendingProduct {
 }
 
 const AdminReviewPanel = () => {
+  const queryClient = useQueryClient();
   const [products, setProducts] = useState<PendingProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -175,6 +177,9 @@ const AdminReviewPanel = () => {
       toast.success(
         `Product ${newStatus === "approved" ? "Approved ✅" : "Rejected ❌"} successfully!`,
       );
+      
+      // Instantly invalidate the pending products query to update the Navbar dot
+      queryClient.invalidateQueries({ queryKey: ['pendingProducts'] });
     } catch (error) {
       if (axios.isAxiosError(error)) {
         toast.error(error.response?.data?.message || "Error updating status");

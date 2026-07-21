@@ -63,5 +63,11 @@ const productSchema = new mongoose.Schema({
   }]
 }, { timestamps: true });
 
+// Performance Indexes
+productSchema.index({ status: 1, createdAt: -1 });
+productSchema.index({ category: 1, status: 1 });
+productSchema.index({ college: 1, status: 1 });
+productSchema.index({ price: 1 });
+productSchema.index({ seller: 1, createdAt: -1 });
 
 export default mongoose.model('Product', productSchema);

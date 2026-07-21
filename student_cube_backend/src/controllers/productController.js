@@ -396,7 +396,8 @@ export const getProducts = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("seller", PUBLIC_SELLER_SELECT),
+        .populate("seller", PUBLIC_SELLER_SELECT)
+        .lean(),
       Product.countDocuments(query),
     ]);
 
@@ -474,7 +475,8 @@ export const getPendingProducts = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("seller", "name username email mobileNumber"),
+        .populate("seller", "name username email mobileNumber")
+        .lean(),
       Product.countDocuments({ status: "pending" }),
     ]);
 
@@ -605,7 +607,7 @@ export const getRecentProducts = async (req, res) => {
         { status: "AVAILABLE" },
         { status: "SOLD_OUT", soldAt: { $gte: soldVisibleAfter } },
       ],
-    }).populate("seller", PUBLIC_SELLER_SELECT);
+    }).populate("seller", PUBLIC_SELLER_SELECT).lean();
 
     const productsById = new Map(
       products.map((product) => [product._id.toString(), product]),
@@ -631,7 +633,7 @@ export const getRecentProducts = async (req, res) => {
 // GET MY LISTINGS: Fetch products posted by the logged-in user
 export const getMyProducts = async (req, res) => {
   try {
-    const products = await Product.find({ seller: req.user._id }).sort({ createdAt: -1 });
+    const products = await Product.find({ seller: req.user._id }).sort({ createdAt: -1 }).lean();
     
     res.status(200).json({
       success: true,
@@ -789,6 +791,7 @@ export const getFeaturedProducts = async (req, res) => {
         }) 
             .sort({ views: -1 })
             .limit(4)
+            .lean();
 
         res.status(200).json(topProducts.map(formatPublicProduct));
     } catch (error) {

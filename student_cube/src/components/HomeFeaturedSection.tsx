@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, ChevronRight, MapPin, Eye } from "lucide-react";
 import { getProductImageUrl } from "../utils/productImages";
 import type { ProductImageValue } from "../utils/productImages";
@@ -24,8 +25,15 @@ interface ProductData {
 }
 
 const HomeFeaturedSection = () => {
-  const [featuredProducts, setFeaturedProducts] = useState<ProductData[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
+  const { data: featuredProducts = [] } = useQuery<ProductData[]>({
+    queryKey: ['featuredProducts'],
+    queryFn: async () => {
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/products/featured`);
+      return res.data;
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
 
   // Product grid stagger entrance animation
   useGSAP(() => {
@@ -49,19 +57,6 @@ const HomeFeaturedSection = () => {
       }
     );
   }, { scope: gridRef, dependencies: [featuredProducts] });
-
-  useEffect(() => {
-    const fetchFeatured = async () => {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/products/featured`,
-        );
-        setFeaturedProducts(res.data);
-      } catch (error) {
-        console.error("Failed to load featured products", error);
-      }
-    };
-    fetchFeatured();
-  }, []);
 
   return (
     <section className="py-12 md:py-16 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import api from "../utils/api";
 
 // === ASSETS ===
@@ -38,33 +38,23 @@ interface CategoryCount {
 const Index = () => {
   const isLoggedIn = !!localStorage.getItem("token");
 
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>(
-    {},
-  );
-
-  useEffect(() => {
-    const fetchCategoryCounts = async () => {
-      try {
-        const response = await api.get("/products/category-counts");
-        const counts = Array.isArray(response.data.data)
-          ? response.data.data.reduce(
-              (acc: Record<string, number>, item: CategoryCount) => {
-                const key = String(item.category || "").trim().toLowerCase();
-                if (key) acc[key] = Number(item.count) || 0;
-                return acc;
-              },
-              {},
-            )
-          : {};
-
-        setCategoryCounts(counts);
-      } catch (error) {
-        console.error("Error fetching category counts:", error);
-      }
-    };
-
-    fetchCategoryCounts();
-  }, []);
+  const { data: categoryCounts = {} } = useQuery({
+    queryKey: ['categoryCounts'],
+    queryFn: async () => {
+      const response = await api.get("/products/category-counts");
+      return Array.isArray(response.data.data)
+        ? response.data.data.reduce(
+            (acc: Record<string, number>, item: CategoryCount) => {
+              const key = String(item.category || "").trim().toLowerCase();
+              if (key) acc[key] = Number(item.count) || 0;
+              return acc;
+            },
+            {},
+          )
+        : {};
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
 
   const stats = [
     { value: "0%", label: "Hidden Charges" },
