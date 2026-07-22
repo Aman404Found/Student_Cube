@@ -104,6 +104,7 @@ const BrowseProducts = () => {
     hasNextPage,
     isFetching,
     isFetchingNextPage,
+    isPlaceholderData,
     status
   } = useInfiniteQuery({
     queryKey: ['products', searchQuery, selectedCollege, selectedCategory, selectedCondition, selectedPriceRange],
@@ -120,7 +121,7 @@ const BrowseProducts = () => {
   const loading = status === 'pending';
   const loadingMore = isFetchingNextPage;
   const hasMore = hasNextPage;
-  const isPlaceholderData = data !== undefined && status === 'pending';
+  
 
   useEffect(() => {
     const sentinel = loadMoreRef.current;
