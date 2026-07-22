@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useGSAP } from "@gsap/react";
+import { useQueryClient } from "@tanstack/react-query";
 import gsap from "gsap";
 import { 
   EASE_SNAP, 
@@ -78,13 +79,17 @@ const profileBadgeByRole = {
 };
 
 const ProductImageFallback = () => (
-  <div className="w-20 h-20 bg-paper-blue text-ink flex items-center justify-center shrink-0 border-[var(--border-w)] border-ink" style={{ borderRadius: 'var(--radius)' }}>
+  <div
+    className="w-20 h-20 bg-paper-blue text-ink flex items-center justify-center shrink-0 border-[length:var(--border-w)] border-ink"
+    style={{ borderRadius: "var(--radius)" }}
+  >
     <Package className="w-7 h-7" />
   </div>
 );
 
 const Profile = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, logout } = useAuth();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -166,6 +171,7 @@ const Profile = () => {
       setMyListings((items) =>
         items.filter((listing) => listing._id !== item._id),
       );
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success(res.data.message || "Listing deleted successfully");
     } catch (error) {
       const message = axios.isAxiosError(error)
@@ -192,6 +198,7 @@ const Profile = () => {
           listing._id === item._id ? res.data.data : listing,
         ),
       );
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success(res.data.message || "Product marked as sold");
     } catch (error) {
       const message = axios.isAxiosError(error)
@@ -261,8 +268,14 @@ const Profile = () => {
   if (!user) {
     return (
       <div className="min-h-[calc(100vh-80px)] bg-paper py-10 px-4 flex justify-center items-center">
-        <div ref={guestRef} className="bg-paper p-8 brutal-block text-center max-w-md w-full">
-          <div className="w-20 h-20 bg-paper-blue text-ink border-[var(--border-w)] border-ink flex items-center justify-center mx-auto mb-6" style={{ borderRadius: 'var(--radius)' }}>
+        <div
+          ref={guestRef}
+          className="bg-paper p-8 brutal-block text-center max-w-md w-full"
+        >
+          <div
+            className="w-20 h-20 bg-paper-blue text-ink border-[length:var(--border-w)] border-ink flex items-center justify-center mx-auto mb-6"
+            style={{ borderRadius: "var(--radius)" }}
+          >
             <User className="w-10 h-10" />
           </div>
           <h2 className="text-3xl font-display uppercase tracking-tight font-bold text-ink mb-2">
@@ -285,9 +298,12 @@ const Profile = () => {
   // REAL LOGGED-IN VIEW
   return (
     <>
-      <div className="min-h-[calc(100vh-80px)] bg-paper py-10 px-4 sm:px-6 pb-20 relative z-10 overflow-hidden border-b-[var(--border-w)] border-ink">
+      <div className="min-h-[calc(100vh-80px)] bg-paper py-10 px-4 sm:px-6 pb-20 relative z-10 overflow-hidden border-b-[length:var(--border-w)] border-ink">
         <div className="absolute inset-0 opacity-[0.03] bg-[url('/noise.png')] mix-blend-overlay pointer-events-none"></div>
-        <div ref={containerRef} className="max-w-4xl mx-auto flex flex-col gap-8 relative z-10">
+        <div
+          ref={containerRef}
+          className="max-w-4xl mx-auto flex flex-col gap-8 relative z-10"
+        >
           {/* Profile Header Card */}
           <div className="profile-animate bg-paper brutal-block p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
             <div className="flex flex-col md:flex-row items-center gap-6">
@@ -297,13 +313,13 @@ const Profile = () => {
                   src={user.profilePic}
                   alt={user.username || user.name || "User"}
                   referrerPolicy="no-referrer"
-                  className="w-24 h-24 object-cover border-[var(--border-w)] border-ink shrink-0"
-                  style={{ borderRadius: 'var(--radius)' }}
+                  className="w-24 h-24 object-cover border-[length:var(--border-w)] border-ink shrink-0"
+                  style={{ borderRadius: "var(--radius)" }}
                 />
               ) : (
-                <div 
-                  className="w-24 h-24 bg-ledger-blue text-paper border-[var(--border-w)] border-ink flex items-center justify-center text-5xl font-display font-bold shrink-0 uppercase"
-                  style={{ borderRadius: 'var(--radius)' }}
+                <div
+                  className="w-24 h-24 bg-ledger-blue text-paper border-[length:var(--border-w)] border-ink flex items-center justify-center text-5xl font-display font-bold shrink-0 uppercase"
+                  style={{ borderRadius: "var(--radius)" }}
                 >
                   {(user?.username || user?.name || "U").charAt(0)}
                 </div>
@@ -339,7 +355,10 @@ const Profile = () => {
 
                 {!isAdmin && (
                   <div className="flex items-center justify-center md:justify-start gap-2 text-sm text-ink font-body font-bold">
-                    <span className="w-2 h-2 bg-signal-orange border-[2px] border-ink" style={{ borderRadius: 'var(--radius)' }}></span>
+                    <span
+                      className="w-2 h-2 bg-signal-orange border-[2px] border-ink"
+                      style={{ borderRadius: "var(--radius)" }}
+                    ></span>
                     <span>{myListings.length} items listed</span>
                   </div>
                 )}
@@ -382,21 +401,21 @@ const Profile = () => {
                 <button
                   onClick={() => setActiveTab("overview")}
                   className={`px-4 py-3 font-display uppercase font-bold text-base tracking-tight flex items-center gap-2 transition-colors shrink-0 ${activeTab === "overview" ? "bg-highlighter text-[#0A0A0A] brutal-block-sm" : "text-ink/70 hover:bg-paper-blue"}`}
-                  style={{ borderRadius: 'var(--radius)' }}
+                  style={{ borderRadius: "var(--radius)" }}
                 >
                   <User className="w-4 h-4" /> Quick Overview
                 </button>
                 <button
                   onClick={() => setActiveTab("listings")}
                   className={`px-4 py-3 font-display uppercase font-bold text-base tracking-tight flex items-center gap-2 transition-colors shrink-0 ${activeTab === "listings" ? "bg-highlighter text-[#0A0A0A] brutal-block-sm" : "text-ink/70 hover:bg-paper-blue"}`}
-                  style={{ borderRadius: 'var(--radius)' }}
+                  style={{ borderRadius: "var(--radius)" }}
                 >
                   <Tag className="w-4 h-4" /> My Listings ({myListings.length})
                 </button>
                 <button
                   onClick={() => setActiveTab("offers")}
                   className={`px-4 py-3 font-display uppercase font-bold text-base tracking-tight flex items-center gap-2 transition-colors shrink-0 ${activeTab === "offers" ? "bg-highlighter text-[#0A0A0A] brutal-block-sm" : "text-ink/70 hover:bg-paper-blue"}`}
-                  style={{ borderRadius: 'var(--radius)' }}
+                  style={{ borderRadius: "var(--radius)" }}
                 >
                   <ShoppingBag className="w-4 h-4" /> My Offers & Purchases
                 </button>
@@ -423,8 +442,8 @@ const Profile = () => {
                   <BadgeCheck className="w-5 h-5 text-ink" /> Ambassadors
                 </button>
                 <button className="flex items-center gap-3 w-full p-4 bg-paper border-[var(--border-w)] border-ink text-ink/50 brutal-block font-body font-bold cursor-not-allowed">
-                  <Settings className="w-5 h-5 text-ink/50" /> Account
-                  Settings (Coming Soon)
+                  <Settings className="w-5 h-5 text-ink/50" /> Account Settings
+                  (Coming Soon)
                 </button>
               </div>
             </div>
@@ -450,8 +469,7 @@ const Profile = () => {
                       onClick={() => setActiveTab("offers")}
                       className="flex items-center gap-3 w-full p-4 bg-paper text-ink border-[var(--border-w)] border-ink hover:bg-highlighter brutal-block transition-colors font-body font-bold"
                     >
-                      <Package className="w-5 h-5 text-ink" /> Track My
-                      Orders
+                      <Package className="w-5 h-5 text-ink" /> Track My Orders
                     </button>
                     <button className="flex items-center gap-3 w-full p-4 bg-paper text-ink/50 border-[var(--border-w)] border-ink brutal-block font-body font-bold cursor-not-allowed">
                       <Settings className="w-5 h-5 text-ink/50" /> Account
@@ -494,7 +512,7 @@ const Profile = () => {
                               src={getProductImageUrl(item.images[0])}
                               alt={item.title}
                               className="w-24 h-24 object-cover border-[var(--border-w)] border-ink shrink-0 bg-paper-blue"
-                              style={{ borderRadius: 'var(--radius)' }}
+                              style={{ borderRadius: "var(--radius)" }}
                             />
                             <div className="grow min-w-0">
                               <h3 className="font-display font-bold text-xl uppercase tracking-tight text-ink truncate mb-1">
@@ -550,7 +568,10 @@ const Profile = () => {
                                     {markingSoldId === item._id ? (
                                       <BrutalLoader size="sm" />
                                     ) : (
-                                      <CheckCircle2 className="w-5 h-5" strokeWidth={2.5} />
+                                      <CheckCircle2
+                                        className="w-5 h-5"
+                                        strokeWidth={2.5}
+                                      />
                                     )}
                                   </button>
                                 )}
@@ -573,7 +594,10 @@ const Profile = () => {
                                   {deletingListingId === item._id ? (
                                     <BrutalLoader size="sm" />
                                   ) : (
-                                    <Trash2 className="w-5 h-5" strokeWidth={2.5} />
+                                    <Trash2
+                                      className="w-5 h-5"
+                                      strokeWidth={2.5}
+                                    />
                                   )}
                                 </button>
                               </div>
@@ -606,7 +630,7 @@ const Profile = () => {
                             src={getProductImageUrl(offer.product.images[0])}
                             alt={offer.product?.title || "Deleted product"}
                             className="w-24 h-24 object-cover border-[var(--border-w)] border-ink shrink-0 bg-paper-blue"
-                            style={{ borderRadius: 'var(--radius)' }}
+                            style={{ borderRadius: "var(--radius)" }}
                           />
                         ) : (
                           <ProductImageFallback />

@@ -11,9 +11,16 @@ interface CustomSelectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  direction?: "down" | "up";
 }
 
-const CustomSelect = ({ options, value, onChange, placeholder = "Select an option" }: CustomSelectProps) => {
+const CustomSelect = ({
+  options,
+  value,
+  onChange,
+  placeholder = "Select an option",
+  direction = "down",
+}: CustomSelectProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +51,7 @@ const CustomSelect = ({ options, value, onChange, placeholder = "Select an optio
         </span>
         <ChevronDown
           className={`w-4 h-4 text-ink transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
+            isOpen ? (direction === "up" ? "" : "rotate-180") : (direction === "up" ? "rotate-180" : "")
           }`}
         />
       </button>
@@ -52,7 +59,9 @@ const CustomSelect = ({ options, value, onChange, placeholder = "Select an optio
       {/* Dropdown Menu */}
       {isOpen && (
         <div 
-          className="absolute z-[99] top-[calc(100%+4px)] left-0 w-full bg-paper border border-solid border-ink overflow-y-auto no-scrollbar"
+          className={`absolute z-99 left-0 w-full bg-paper border border-solid border-ink overflow-y-auto no-scrollbar ${
+            direction === "up" ? "bottom-[calc(100%+4px)]" : "top-[calc(100%+4px)]"
+          }`}
           style={{
             maxHeight: "240px",
             borderRadius: "var(--brutal-radius)",

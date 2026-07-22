@@ -60,21 +60,51 @@ export const getMyChats = async (req, res) => {
       })
       .lean();
 
-    const data = await Promise.all(chats.map(async (chat) => {
+    // Batch fetch offers to avoid N+1 query (PERF-07 / BUG-021)
+    const productIds = [
+      ...new Set(
+        chats
+          .map((c) => c.product?._id || c.product)
+          .filter(Boolean)
+          .map((id) => id.toString()),
+      ),
+    ];
+
+    const allUserOffers = productIds.length > 0
+      ? await Offer.find({
+        product: { $in: productIds },
+        $or: [
+          { buyer: req.user._id },
+          { seller: req.user._id },
+        ],
+      }).select('product buyer seller paymentStatus').lean()
+      : [];
+
+    const offersByParticipantPair = new Map();
+    for (const o of allUserOffers) {
+      const prodId = o.product.toString();
+      const pairKey = [o.buyer.toString(), o.seller.toString()].sort().join(':');
+      const lookupKey = `${prodId}:${pairKey}`;
+      const bucket = offersByParticipantPair.get(lookupKey);
+      if (bucket) {
+        bucket.push(o);
+      } else {
+        offersByParticipantPair.set(lookupKey, [o]);
+      }
+    }
+
+    const data = chats.map((chat) => {
       const offer = chat.offer;
       const otherUser = offer?.buyer?._id?.toString() === req.user._id.toString()
         ? offer.seller
         : offer.buyer;
-      const p1 = chat.participants[0];
-      const p2 = chat.participants[1];
-      
-      const chatOffers = await Offer.find({
-        product: chat.product?._id || chat.product,
-        $or: [
-          { buyer: p1, seller: p2 },
-          { buyer: p2, seller: p1 }
-        ]
-      }).select('paymentStatus');
+      const p1 = chat.participants[0].toString();
+      const p2 = chat.participants[1].toString();
+      const chatProdId = (chat.product?._id || chat.product)?.toString();
+      const lookupKey = chatProdId
+        ? `${chatProdId}:${[p1, p2].sort().join(':')}`
+        : null;
+      const chatOffers = lookupKey ? (offersByParticipantPair.get(lookupKey) || []) : [];
       
       const canSendCustom = chatOffers.some((chatOffer) => chatOffer.paymentStatus === 'PAID');
 
@@ -99,7 +129,7 @@ export const getMyChats = async (req, res) => {
           deleteAfter: chat.deleteAfter,
         },
       };
-    }));
+    });
 
     res.status(200).json({ success: true, data });
   } catch (error) {

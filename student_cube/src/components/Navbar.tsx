@@ -104,7 +104,7 @@ const Navbar = () => {
   }, [queryClient]);
 
   // TypeScript typing added to 'e' parameter
-  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSearchSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
 
     if (searchQuery.trim()) {

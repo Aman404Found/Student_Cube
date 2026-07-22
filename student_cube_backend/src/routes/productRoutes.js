@@ -1,5 +1,5 @@
 import express from 'express';
-import { createProduct, getProducts, getProductById, getPendingProducts, updateProductStatus, getMyProducts, deleteMyProduct, deleteProductAdmin, markMyProductSold, getFeaturedProducts, getUploadSignature, getRecentProducts, getCategoryCounts } from '../controllers/productController.js';
+import { createProduct, getProducts, getProductById, getPendingProducts, updateProductStatus, getMyProducts, deleteMyProduct, deleteProductAdmin, markMyProductSold, getFeaturedProducts, getUploadSignature, getRecentProducts, getCategoryCounts, updateProduct } from '../controllers/productController.js';
 import { protect, isAdmin } from '../middlewares/authMiddleware.js';
 import { adminLimiter, productCreateLimiter, productServiceLimiter, uploadSignatureLimiter } from '../middlewares/rateLimitMiddleware.js';
 
@@ -20,6 +20,7 @@ router.put('/admin/status/:id', protect, isAdmin, productServiceLimiter, adminLi
 router.delete('/admin/:id', protect, isAdmin, productServiceLimiter, adminLimiter, deleteProductAdmin);
 router.put('/:id/mark-sold', protect, productServiceLimiter, markMyProductSold);
 router.delete('/:id', protect, productServiceLimiter, deleteMyProduct);
+router.put('/:id', protect, productServiceLimiter, updateProduct);
 router.get('/:id', productServiceLimiter, getProductById); 
 
 export default router;

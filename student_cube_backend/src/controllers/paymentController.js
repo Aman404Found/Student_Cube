@@ -19,10 +19,25 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: "Offer ID is required" });
     }
     
+    // BUG-011 Fix: Validate offer and authorization
+    const offer = await Offer.findById(offerId);
+    if (!offer) {
+      return res.status(404).json({ success: false, message: "Offer not found" });
+    }
+    if (offer.buyer.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: "Unauthorized to pay for this offer" });
+    }
+    if (offer.paymentStatus === 'PAID') {
+      return res.status(400).json({ success: false, message: "Offer is already paid" });
+    }
+
     const options = {
       amount: 900,
       currency: "INR",
       receipt: `receipt_offer_${offerId}`,
+      notes: {
+        offerId: offerId.toString()
+      }
     };
 
     const order = await razorpay.orders.create(options);
@@ -69,6 +84,19 @@ export const verifyPayment = async (req, res) => {
 
     if (generated_signature === razorpay_signature) {
       
+      // BUG-012 Fix: Verify the order details from Razorpay to prevent replay attacks
+      const order = await razorpay.orders.fetch(razorpay_order_id);
+      if (order.notes?.offerId !== offerId) {
+        console.error("🔥 Replay Attack Detected: order offerId mismatch", { expected: offerId, actual: order.notes?.offerId });
+        return res.status(400).json({ success: false, message: "Invalid payment data. Order mismatch." });
+      }
+
+      // Idempotency check
+      const existingOffer = await Offer.findById(offerId);
+      if (existingOffer && existingOffer.paymentStatus === 'PAID') {
+        return res.status(200).json({ success: true, message: "Already paid", paymentId: existingOffer.razorpayPaymentId });
+      }
+      
       const updatedOffer = await Offer.findByIdAndUpdate(
         offerId, 
         {
@@ -91,10 +119,14 @@ export const verifyPayment = async (req, res) => {
         const productId = updatedOffer.product || updatedOffer.productId; 
         
         if (productId) {
-          const product = await Product.findById(productId);
+          // BUG-014 Fix: Atomic update to prevent double-credit race condition
+          const product = await Product.findOneAndUpdate(
+            { _id: productId, isPromoRewarded: false, appliedPromoCode: { $exists: true, $ne: "" } },
+            { $set: { isPromoRewarded: true } },
+            { new: true }
+          );
 
-          // Check agar promo code use hua tha aur reward abhi tak nahi diya gaya hai
-          if (product && product.appliedPromoCode && product.isPromoRewarded === false) {
+          if (product) {
             
             // Ambassador ka wo code nikalo jiska status abhi tak "used" hai is product ke liye
             const ambassadorCode = await ReferCode.findOne({ 
@@ -115,21 +147,14 @@ export const verifyPayment = async (req, res) => {
                 }
               );
 
-              // 2. Ambassador ke wallet me commission add karo (Example: ₹4)
+              // 2. Ambassador ke wallet me commission add karo (BUG-016: ₹5)
               await User.updateOne(
                 { _id: ambassadorCode.owner._id },
                 { 
-                  $inc: { 
-                    walletBalance: 4, 
-                    referred: 1 
-                  } 
+                  $inc: { walletBalance: 5 } 
                 }
               );
 
-              // 3. Product ko mark karo ki ab dobara reward na jaye
-              product.isPromoRewarded = true;
-              await product.save();
-              
               console.log("✅ Ambassador Reward Processed Successfully!");
             }
           }
@@ -177,5 +202,96 @@ export const createListingOrder = async (req, res) => {
   } catch (error) {
     console.error("🔥 Razorpay Listing Order Error:", error);
     res.status(500).json({ success: false, message: "Server error in creating listing order" });
+  }
+};
+
+// Webhook handler for server-to-server notifications
+export const razorpayWebhook = async (req, res) => {
+  try {
+    const signature = req.headers['x-razorpay-signature'];
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+
+    if (!secret) {
+      console.warn("Webhook secret not configured.");
+      return res.status(200).send("OK");
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(JSON.stringify(req.body))
+      .digest('hex');
+
+    const event = req.body;
+    
+    if (event.event === 'payment.captured' || event.event === 'order.paid') {
+      const entity = event.event === 'order.paid' ? event.payload.order.entity : event.payload.payment.entity;
+      const offerId = entity.notes?.offerId;
+      const orderId = entity.order_id || entity.id;
+
+      if (!offerId) return res.status(200).send("OK");
+
+      // Idempotency check
+      const existingOffer = await Offer.findById(offerId);
+      if (!existingOffer || existingOffer.paymentStatus === 'PAID') {
+        return res.status(200).send("OK");
+      }
+
+      // Secure verification fallback against Razorpay API
+      const order = await razorpay.orders.fetch(orderId);
+      if (order.status !== 'paid' || order.notes?.offerId !== offerId) {
+        return res.status(400).send("Verification failed");
+      }
+
+      // Update offer
+      const updatedOffer = await Offer.findByIdAndUpdate(
+        offerId,
+        {
+          paymentStatus: 'PAID',
+          razorpayPaymentId: event.payload.payment?.entity?.id,
+          razorpayOrderId: orderId
+        },
+        { new: true }
+      );
+
+      // Process ambassador reward if applicable
+      try {
+        const productId = updatedOffer.product || updatedOffer.productId; 
+        if (productId) {
+          // BUG-014 Fix: Atomic update to prevent double-credit race condition
+          const product = await Product.findOneAndUpdate(
+            { _id: productId, isPromoRewarded: false, appliedPromoCode: { $exists: true, $ne: "" } },
+            { $set: { isPromoRewarded: true } },
+            { new: true }
+          );
+
+          if (product) {
+            const ambassadorCode = await ReferCode.findOne({ 
+              code: product.appliedPromoCode,
+              "referredUsers.productId": product._id,
+              "referredUsers.status": "used"
+            }).populate('owner');
+
+            if (ambassadorCode) {
+              await ReferCode.updateOne(
+                { _id: ambassadorCode._id, "referredUsers.productId": product._id },
+                { $set: { "referredUsers.$.status": "successful" } }
+              );
+              // BUG-016 Fix: Correct payout amount and remove undefined field
+              await User.updateOne(
+                { _id: ambassadorCode.owner._id },
+                { $inc: { walletBalance: 5 } }
+              );
+            }
+          }
+        }
+      } catch (rewardError) {
+        console.error("⚠️ Error processing ambassador reward in webhook:", rewardError);
+      }
+    }
+    
+    res.status(200).send("OK");
+  } catch (error) {
+    console.error("🔥 Razorpay Webhook Error:", error);
+    res.status(500).send("Server Error");
   }
 };

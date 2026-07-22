@@ -177,23 +177,30 @@ export const addAmbassadorPayoutAdmin = async (req, res) => {
       return res.status(400).json({ success: false, message: "Please provide a valid payout time" });
     }
 
-    const ambassador = await User.findOne({ _id: ambassadorId, role: "ambassador" });
-    if (!ambassador) {
-      return res.status(404).json({ success: false, message: "Ambassador not found" });
-    }
+    // BUG-015 Fix: Atomic update to prevent over-withdrawal race condition
+    const ambassador = await User.findOneAndUpdate(
+      { _id: ambassadorId, role: "ambassador", walletBalance: { $gte: amount } },
+      {
+        $inc: { walletBalance: -amount },
+        $push: {
+          payoutHistory: {
+            amount,
+            paidAt,
+            transactionId,
+            note: req.body.note ? String(req.body.note).trim() : undefined,
+          },
+        },
+      },
+      { new: true }
+    );
 
-    if ((ambassador.walletBalance || 0) < amount) {
+    if (!ambassador) {
+      const existing = await User.findOne({ _id: ambassadorId, role: "ambassador" });
+      if (!existing) {
+        return res.status(404).json({ success: false, message: "Ambassador not found" });
+      }
       return res.status(400).json({ success: false, message: "Payout amount cannot exceed wallet balance" });
     }
-
-    ambassador.walletBalance = Number((ambassador.walletBalance - amount).toFixed(2));
-    ambassador.payoutHistory.push({
-      amount,
-      paidAt,
-      transactionId,
-      note: req.body.note ? String(req.body.note).trim() : undefined,
-    });
-    await ambassador.save();
 
     const referCode = await ReferCode.findOne({ owner: ambassador._id });
 

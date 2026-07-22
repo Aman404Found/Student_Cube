@@ -39,7 +39,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
     return () => window.clearInterval(timerId);
   }, [isOpen, step, otpSecondsRemaining]);
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!email) return toast.error("Please enter your email");
 
@@ -64,7 +64,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!otp || !newPassword) {
       triggerShake();

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Search, ChevronDown, X, Filter, MapPin, Eye, Clock, Laptop } from "lucide-react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, keepPreviousData } from "@tanstack/react-query";
 import api from "../utils/api";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import ScrollToTopButton from "../components/ScrollToTopButton";
@@ -36,6 +36,7 @@ const BrowseProducts = () => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const gridHasAnimated = useRef(false);
   const navigate = useNavigate();
   
   // 2. URL SEARCH PARAMS 
@@ -112,12 +113,14 @@ const BrowseProducts = () => {
       return lastPage.pagination?.hasMore ? allPages.length + 1 : undefined;
     },
     staleTime: 1000 * 60 * 5, // cache for 5 minutes
+    placeholderData: keepPreviousData,
   });
 
-  const products = data?.pages.flatMap(page => page.data || []) || [];
+  const products = useMemo(() => data?.pages.flatMap(page => page.data || []) || [], [data]);
   const loading = status === 'pending';
   const loadingMore = isFetchingNextPage;
   const hasMore = hasNextPage;
+  const isPlaceholderData = data !== undefined && status === 'pending';
 
   useEffect(() => {
     const sentinel = loadMoreRef.current;
@@ -136,9 +139,9 @@ const BrowseProducts = () => {
     return () => observer.disconnect();
   }, [hasNextPage, isFetching, isFetchingNextPage, fetchNextPage]);
 
-  // Step B: GSAP entrance animation for grid
+  // Step B: GSAP entrance animation for grid 
   useGSAP(() => {
-    if (prefersReducedMotion() || products.length === 0 || loading) return;
+    if (prefersReducedMotion() || products.length === 0 || loading || isPlaceholderData || gridHasAnimated.current) return;
 
     gsap.fromTo(
       gridRef.current?.children || [],
@@ -154,7 +157,9 @@ const BrowseProducts = () => {
         clearProps: "all"
       }
     );
-  }, { scope: gridRef, dependencies: [loading] });
+
+    gridHasAnimated.current = true;
+  }, { scope: gridRef, dependencies: [products, loading, isPlaceholderData] });
 
   // Helper function to update a specific URL parameter
   const updateFilterParams = (key: string, value: string | null) => {
@@ -222,7 +227,7 @@ const BrowseProducts = () => {
           
           {/* SIDEBAR FILTERS */}
           <aside className="w-full md:w-64 bg-paper brutal-block h-fit overflow-visible">
-            <div className="p-5 border-b-[var(--border-w-sm)] border-ink bg-paper flex items-center justify-between gap-3 rounded-t-[calc(var(--brutal-radius)-1px)]">
+            <div className="p-5 border-b-[length:var(--border-w-sm)] border-ink bg-paper flex items-center justify-between gap-3 rounded-t-[calc(var(--brutal-radius)-1px)]">
               <button
                 type="button"
                 onClick={() => setIsFiltersOpen((current) => !current)}
@@ -297,7 +302,7 @@ const BrowseProducts = () => {
           </aside>
 
           <div className="flex-1">
-            {loading ? (
+            {loading && !products.length ? (
               <div className="flex justify-center items-center h-64">
                 <BrutalLoader size="lg" />
               </div>
@@ -322,7 +327,15 @@ const BrowseProducts = () => {
                   <BrutalCard 
                     key={prod._id} 
                     onClick={() => navigate(`/product/${prod._id}`)}
-                    className="cursor-pointer flex flex-col group"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/product/${prod._id}`);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    className="cursor-pointer flex flex-col group brutal-focus"
                   >
                     <BrutalCardImage className="relative h-48 w-full bg-paper-blue flex items-center justify-center">
                       
@@ -363,7 +376,7 @@ const BrowseProducts = () => {
 
                     <BrutalCardContent className="flex-1 flex flex-col">
                       <div className="flex justify-between items-center mb-3">
-                        <span className="font-mono text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide text-ink/60 px-2 py-1 bg-paper-blue border-[var(--border-w-sm)] border-solid border-ink">
+                        <span className="font-mono text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide text-ink/60 px-2 py-1 bg-paper-blue border-[length:var(--border-w-sm)] border-solid border-ink">
                           {prod.category || "Uncategorized"}
                         </span>
                         <BrutalBadge condition={prod.condition?.toLowerCase() === "like new" ? "like-new" : "good"}>
@@ -381,7 +394,7 @@ const BrowseProducts = () => {
                       </div>
                       
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-5 h-5 flex items-center justify-center font-mono font-bold text-[9px] uppercase bg-paper text-ink border-[var(--border-w-sm)] border-solid border-ink">
+                        <div className="w-5 h-5 flex items-center justify-center font-mono font-bold text-[9px] uppercase bg-paper text-ink border-[length:var(--border-w-sm)] border-solid border-ink">
                           {prod.seller?.username ? prod.seller.username.charAt(0).toUpperCase() : 'S'}
                         </div>
                         <span className="text-xs text-ink/60 font-bold">
@@ -390,14 +403,14 @@ const BrowseProducts = () => {
                       </div>
                     </BrutalCardContent>
                     
-                    <BrutalCardFooter className="pt-4 mt-auto border-t-[var(--border-w-sm)] border-solid border-ink bg-paper flex justify-between items-center relative">
+                    <BrutalCardFooter className="pt-4 mt-auto border-t-[length:var(--border-w-sm)] border-solid border-ink bg-paper flex justify-between items-center relative">
                       <div className="flex flex-col relative">
                         <div className="flex items-center gap-2">
                           <div className="font-mono font-bold text-lg text-ink">
                               ₹{prod.price ? prod.price.toLocaleString("en-IN") : "0"}
                           </div>
                           {hasDiscount && (
-                            <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 bg-stamp-red text-paper border-[var(--border-w-sm)] border-solid border-ink shadow-[2px_2px_0_0_var(--color-ink)] -rotate-3">
+                            <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 bg-stamp-red text-paper border-[length:var(--border-w-sm)] border-solid border-ink shadow-[2px_2px_0_0_var(--color-ink)] -rotate-3">
                               {discountPercentage}% OFF
                             </span>
                           )}

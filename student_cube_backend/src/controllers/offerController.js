@@ -1,6 +1,7 @@
 import Offer from "../models/Offer.js";
 import Product from "../models/Product.js";
 import Chat from "../models/Chat.js";
+import User from "../models/User.js";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import { getOrCreateChatForOffer, recordChatMessage } from "../utils/chatService.js";
@@ -237,6 +238,15 @@ export const acceptOffer = async (req, res) => {
       return res.status(400).json({ message: "Only pending offers can be accepted." });
     }
 
+    const existingAcceptedOffer = await Offer.findOne({
+      product: offer.product,
+      status: "accepted"
+    });
+
+    if (existingAcceptedOffer) {
+      return res.status(400).json({ message: "You have already accepted another offer for this product. Please complete or cancel it before accepting a new one." });
+    }
+
     offer.status = "accepted";
     await offer.save();
     await recordChatMessage({
@@ -274,8 +284,23 @@ export const rejectOffer = async (req, res) => {
         .json({ message: "Offer not found or unauthorized" });
     }
 
-    if (offer.status !== "pending") {
-      return res.status(400).json({ message: "Only pending offers can be rejected." });
+    if (offer.status !== "pending" && offer.status !== "accepted") {
+      return res.status(400).json({ message: "Only pending or accepted offers can be rejected." });
+    }
+
+    let strikeMessage = "";
+    if (offer.status === "accepted") {
+      const user = await User.findById(sellerId);
+      if (user) {
+        user.escrowStrikes = (user.escrowStrikes || 0) + 1;
+        if (user.escrowStrikes >= 10) {
+          user.isSuspended = true;
+          strikeMessage = " You have reached 10 strikes and your account has been suspended.";
+        } else {
+          strikeMessage = ` You have received an escrow strike (${user.escrowStrikes}/10) for cancelling an accepted offer.`;
+        }
+        await user.save();
+      }
     }
 
     offer.status = "rejected";
@@ -294,7 +319,7 @@ export const rejectOffer = async (req, res) => {
 
     res
       .status(200)
-      .json({ success: true, message: "Offer rejected successfully." });
+      .json({ success: true, message: `Offer rejected successfully.${strikeMessage}` });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -448,8 +473,23 @@ export const revokeOffer = async (req, res) => {
         .json({ message: "Offer not found or unauthorized" });
     }
 
-    if (offer.status !== "pending") {
-      return res.status(400).json({ message: "Only pending offers can be revoked." });
+    if (offer.status !== "pending" && offer.status !== "accepted") {
+      return res.status(400).json({ message: "Only pending or accepted offers can be revoked." });
+    }
+
+    let strikeMessage = "";
+    if (offer.status === "accepted") {
+      const user = await User.findById(buyerId);
+      if (user) {
+        user.escrowStrikes = (user.escrowStrikes || 0) + 1;
+        if (user.escrowStrikes >= 10) {
+          user.isSuspended = true;
+          strikeMessage = " You have reached 10 strikes and your account has been suspended.";
+        } else {
+          strikeMessage = ` You have received an escrow strike (${user.escrowStrikes}/10) for revoking an accepted offer.`;
+        }
+        await user.save();
+      }
     }
 
     offer.status = "revoked";
@@ -468,7 +508,7 @@ export const revokeOffer = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Offer revoked successfully.",
+      message: `Offer revoked successfully.${strikeMessage}`,
       offer,
     });
   } catch (error) {

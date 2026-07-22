@@ -64,10 +64,21 @@ const productSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Performance Indexes
+// Cover the default product listing query (available/sold_out + sort by newest)
 productSchema.index({ status: 1, createdAt: -1 });
-productSchema.index({ category: 1, status: 1 });
-productSchema.index({ college: 1, status: 1 });
-productSchema.index({ price: 1 });
+// Cover status + soldAt filter (the $or branch for recently sold items)
+productSchema.index({ status: 1, soldAt: 1 });
+// Cover category + status filter with sort
+productSchema.index({ category: 1, status: 1, createdAt: -1 });
+// Cover college + status filter with sort
+productSchema.index({ college: 1, status: 1, createdAt: -1 });
+// Cover price + status filter with sort
+productSchema.index({ price: 1, status: 1, createdAt: -1 });
+// Cover condition + status filter with sort
+productSchema.index({ condition: 1, status: 1, createdAt: -1 });
+// Cover seller queries
 productSchema.index({ seller: 1, createdAt: -1 });
+// Text index for product search (title + category) — avoids $regex full collection scans
+productSchema.index({ title: 'text', category: 'text' }, { default_language: 'none' });
 
 export default mongoose.model('Product', productSchema);

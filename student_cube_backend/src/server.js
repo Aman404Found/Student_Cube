@@ -20,6 +20,7 @@ import ambassadorRoutes from './routes/ambassadorRoutes.js';
 import { getChatWithMessages, sendChatMessage } from './utils/chatService.js';
 import { setRealtimeSender } from './utils/realtime.js';
 import { createWebSocketMessageLimiter, pingLimiter } from './middlewares/rateLimitMiddleware.js';
+import { startOfferExpiryJob } from './utils/cronService.js';
 
 connectDB();
 
@@ -49,6 +50,7 @@ app.use(cors({
   ].filter(Boolean), 
   credentials: true,
 }));
+
 
 app.use(express.json());
 
@@ -217,6 +219,9 @@ wss.on('connection', async (ws, req) => {
     ws.close();
   }
 });
+
+// Start Background Jobs
+startOfferExpiryJob();
 
 // Server Start
 server.listen(PORT, () => {

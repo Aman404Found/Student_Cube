@@ -5,8 +5,12 @@ import {
   CheckCircle2,
   X,
   Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  RotateCw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "../utils/api";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -36,18 +40,45 @@ interface UploadedImage {
   format: string;
 }
 
-const ImagePreview = ({ file, onRemove }: { file: File; onRemove: () => void }) => {
+export interface PhotoItem {
+  id: string;
+  file: File;
+  progress: number;
+  status: "idle" | "uploading" | "success" | "error";
+  uploadedData?: UploadedImage;
+  errorMsg?: string;
+}
+
+interface ImagePreviewProps {
+  item: PhotoItem;
+  index: number;
+  total: number;
+  onRemove: () => void;
+  onMoveLeft: () => void;
+  onMoveRight: () => void;
+  onRetry: () => void;
+}
+
+const ImagePreview = ({
+  item,
+  index,
+  total,
+  onRemove,
+  onMoveLeft,
+  onMoveRight,
+  onRetry,
+}: ImagePreviewProps) => {
   const [url, setUrl] = useState<string>("");
 
   useEffect(() => {
-    const objectUrl = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(item.file);
     setUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
-  }, [file]);
+  }, [item.file]);
 
   return (
     <div className="w-32 h-32 bg-paper brutal-block-sm overflow-hidden relative group p-1">
-      <div className="w-full h-full border border-ink relative overflow-hidden">
+      <div className="w-full h-full border border-ink relative overflow-hidden bg-paper">
         {url && (
           <img
             src={url}
@@ -55,13 +86,78 @@ const ImagePreview = ({ file, onRemove }: { file: File; onRemove: () => void }) 
             className="w-full h-full object-cover"
           />
         )}
-        <button
-          type="button"
-          onClick={onRemove}
-          className="absolute top-1 right-1 bg-stamp-red text-paper p-1 opacity-0 group-hover:opacity-100 transition-opacity border-2 border-ink shadow-[2px_2px_0px_0px_var(--color-ink)] hover:translate-y-px hover:shadow-[1px_1px_0px_0px_var(--color-ink)]"
-        >
-          <X className="w-4 h-4" />
-        </button>
+
+        {/* Upload Progress Overlay */}
+        {item.status === "uploading" && (
+          <div className="absolute inset-0 bg-ink/70 flex flex-col items-center justify-center p-2 text-paper z-10">
+            <span className="font-mono text-xs font-bold mb-1">{item.progress}%</span>
+            <div className="w-full bg-paper/30 h-2 border border-paper overflow-hidden">
+              <div
+                className="bg-campus-green h-full transition-all duration-150"
+                style={{ width: `${item.progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Success Indicator */}
+        {item.status === "success" && (
+          <div className="absolute top-1 left-1 bg-campus-green text-paper p-0.5 border border-ink shadow-[1px_1px_0px_0px_var(--color-ink)] z-10">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+          </div>
+        )}
+
+        {/* Error / Retry Overlay */}
+        {item.status === "error" && (
+          <div className="absolute inset-0 bg-stamp-red/90 flex flex-col items-center justify-center p-1 text-paper text-center z-10">
+            <span className="font-mono text-[10px] font-bold mb-1 uppercase">Upload Failed</span>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="px-2 py-1 bg-paper text-stamp-red font-mono text-[10px] font-bold border border-ink shadow-[1px_1px_0px_0px_var(--color-ink)] flex items-center gap-1 hover:bg-paper-blue cursor-pointer"
+            >
+              <RotateCw className="w-3 h-3" /> Retry
+            </button>
+          </div>
+        )}
+
+        {/* Remove Button */}
+        {item.status !== "uploading" && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="absolute top-1 right-1 bg-stamp-red text-paper p-1 opacity-0 group-hover:opacity-100 transition-opacity border-2 border-ink shadow-[2px_2px_0px_0px_var(--color-ink)] hover:translate-y-px z-20"
+            title="Remove photo"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {/* Reorder Controls */}
+        {item.status !== "uploading" && total > 1 && (
+          <div className="absolute bottom-1 left-1 right-1 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity z-20">
+            {index > 0 ? (
+              <button
+                type="button"
+                onClick={onMoveLeft}
+                className="bg-paper text-ink p-1 border border-ink shadow-[1px_1px_0px_0px_var(--color-ink)] hover:bg-ledger-blue hover:text-paper"
+                title="Move left"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+            ) : <div />}
+            {index < total - 1 ? (
+              <button
+                type="button"
+                onClick={onMoveRight}
+                className="bg-paper text-ink p-1 border border-ink shadow-[1px_1px_0px_0px_var(--color-ink)] hover:bg-ledger-blue hover:text-paper"
+                title="Move right"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            ) : <div />}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -69,6 +165,7 @@ const ImagePreview = ({ file, onRemove }: { file: File; onRemove: () => void }) 
 
 const Sell = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, refreshUser } = useAuth();
   const isAdmin = user?.role === "admin";
   const [loading, setLoading] = useState(false);
@@ -87,7 +184,7 @@ const Sell = () => {
     null,
   );
   const [tags] = useState<string[]>([]);
-  const [photos, setPhotos] = useState<File[]>([]);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const canUsePromoCode = hasUsedReferCode === false;
 
   useEffect(() => {
@@ -111,23 +208,23 @@ const Sell = () => {
     };
   }, []);
 
-  const validatePhotos = (files: File[]) => {
-    if (files.length === 0) {
+  const validatePhotos = (items: PhotoItem[]) => {
+    if (items.length === 0) {
       return "Please upload at least 1 product photo.";
     }
 
-    if (files.length > MAX_IMAGES) {
+    if (items.length > MAX_IMAGES) {
       return "You can only upload up to 4 photos.";
     }
 
-    const invalidType = files.find(
-      (file) => !ALLOWED_IMAGE_TYPES.includes(file.type),
+    const invalidType = items.find(
+      (item) => !ALLOWED_IMAGE_TYPES.includes(item.file.type),
     );
     if (invalidType) {
       return "Only png, jpg, and jpeg images are allowed.";
     }
 
-    const oversized = files.find((file) => file.size > MAX_IMAGE_BYTES);
+    const oversized = items.find((item) => item.file.size > MAX_IMAGE_BYTES);
     if (oversized) {
       return "No image should be more than 10 MB.";
     }
@@ -135,28 +232,107 @@ const Sell = () => {
     return "";
   };
 
-  const uploadPhotoToCloudinary = async (
-    photo: File,
+  const uploadSinglePhoto = async (
+    item: PhotoItem,
     signature: CloudinarySignature,
-  ) => {
+  ): Promise<UploadedImage> => {
+    if (item.status === "success" && item.uploadedData) {
+      return item.uploadedData;
+    }
+
+    setPhotos((prev) =>
+      prev.map((p) =>
+        p.id === item.id
+          ? { ...p, status: "uploading", progress: 0, errorMsg: undefined }
+          : p,
+      ),
+    );
+
     const formData = new FormData();
-    formData.append("file", photo);
+    formData.append("file", item.file);
     formData.append("api_key", signature.apiKey);
     formData.append("timestamp", String(signature.timestamp));
     formData.append("folder", signature.folder);
     formData.append("signature", signature.signature);
 
-    const response = await axios.post(
-      `https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`,
-      formData,
-    );
+    try {
+      const response = await axios.post(
+        `https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`,
+        formData,
+        {
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total,
+              );
+              setPhotos((prev) =>
+                prev.map((p) =>
+                  p.id === item.id ? { ...p, progress: percent } : p,
+                ),
+              );
+            }
+          },
+        },
+      );
 
-    return {
-      publicId: response.data.public_id,
-      url: response.data.secure_url,
-      bytes: response.data.bytes,
-      format: response.data.format,
-    } satisfies UploadedImage;
+      const uploaded: UploadedImage = {
+        publicId: response.data.public_id,
+        url: response.data.secure_url,
+        bytes: response.data.bytes,
+        format: response.data.format,
+      };
+
+      setPhotos((prev) =>
+        prev.map((p) =>
+          p.id === item.id
+            ? { ...p, status: "success", progress: 100, uploadedData: uploaded }
+            : p,
+        ),
+      );
+
+      return uploaded;
+    } catch (err) {
+      setPhotos((prev) =>
+        prev.map((p) =>
+          p.id === item.id
+            ? { ...p, status: "error", errorMsg: "Upload failed" }
+            : p,
+        ),
+      );
+      throw err;
+    }
+  };
+
+  const movePhotoLeft = (index: number) => {
+    if (index <= 0) return;
+    setPhotos((prev) => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[index - 1];
+      next[index - 1] = temp;
+      return next;
+    });
+  };
+
+  const movePhotoRight = (index: number) => {
+    if (index >= photos.length - 1) return;
+    setPhotos((prev) => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[index + 1];
+      next[index + 1] = temp;
+      return next;
+    });
+  };
+
+  const handleRetryPhoto = async (item: PhotoItem) => {
+    try {
+      const signatureRes = await api.post("/products/upload-signature");
+      await uploadSinglePhoto(item, signatureRes.data.data);
+      toast.success("Image uploaded successfully!");
+    } catch {
+      toast.error("Failed to upload image.");
+    }
   };
 
   const validateVideoProof = (link: string) => {
@@ -185,7 +361,14 @@ const Sell = () => {
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files);
-      const nextPhotos = [...photos, ...selectedFiles];
+      const newItems: PhotoItem[] = selectedFiles.map((file) => ({
+        id: `${file.name}-${Date.now()}-${Math.random()}`,
+        file,
+        progress: 0,
+        status: "idle",
+      }));
+
+      const nextPhotos = [...photos, ...newItems];
       const validationError = validatePhotos(nextPhotos);
 
       if (validationError) {
@@ -199,7 +382,7 @@ const Sell = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
 
     if (isAdmin) {
@@ -230,8 +413,8 @@ const Sell = () => {
       // 1. Upload Images First (Common Step)
       const signatureRes = await api.post("/products/upload-signature");
       const uploadedImages = await Promise.all(
-        photos.map((photo) =>
-          uploadPhotoToCloudinary(photo, signatureRes.data.data),
+        photos.map((item) =>
+          uploadSinglePhoto(item, signatureRes.data.data),
         ),
       );
 
@@ -260,6 +443,7 @@ const Sell = () => {
         toast.success("Sent for FREE verification using Promo Code! 🎉");
         setHasUsedReferCode(true);
         refreshUser();
+        await queryClient.invalidateQueries({ queryKey: ['products'] });
 
         setTimeout(() => {
           navigate("/buy");
@@ -301,6 +485,7 @@ const Sell = () => {
                 paymentId: response.razorpay_payment_id,
               };
               await api.post("/products", finalPayload);
+              await queryClient.invalidateQueries({ queryKey: ['products'] });
 
               toast.success(
                 "Payment Successful! Product Sent for verification. 🚀",
@@ -377,7 +562,7 @@ const Sell = () => {
             type="button"
             onClick={() => navigate("/admin")}
             variant="primary"
-            className="w-full !bg-ledger-blue"
+            className="w-full bg-ledger-blue"
           >
             Go to Admin Dashboard
           </BrutalButton>
@@ -408,7 +593,7 @@ const Sell = () => {
       <div className="max-w-3xl mx-auto bg-paper-blue brutal-block overflow-hidden relative z-10">
         {message.text && (
           <div
-            className={`m-6 p-4 text-sm font-bold font-mono uppercase tracking-wide text-center border-[var(--border-w-sm)] border-solid ${
+            className={`m-6 p-4 text-sm font-bold font-mono uppercase tracking-wide text-center border-[--border-w-sm] border-solid ${
               message.type === "error"
                 ? "bg-paper text-stamp-red border-stamp-red shadow-[2px_2px_0px_0px_var(--color-stamp-red)]"
                 : "bg-campus-green text-ink border-ink shadow-[2px_2px_0px_0px_var(--color-ink)]"
@@ -433,19 +618,24 @@ const Sell = () => {
               PNG, JPG, or JPEG format.
             </p>
             <div className="flex gap-4 flex-wrap">
-              {photos.map((photo, index) => (
+              {photos.map((item, index) => (
                 <ImagePreview
-                  key={index}
-                  file={photo}
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  total={photos.length}
                   onRemove={() =>
                     setPhotos(photos.filter((_, i) => i !== index))
                   }
+                  onMoveLeft={() => movePhotoLeft(index)}
+                  onMoveRight={() => movePhotoRight(index)}
+                  onRetry={() => handleRetryPhoto(item)}
                 />
               ))}
 
               {photos.length < 4 && (
                 <>
-                  <label className="hidden md:flex w-32 h-32 bg-paper border-[var(--border-w)] border-ink flex-col items-center justify-center text-ink/60 hover:bg-ledger-blue hover:text-paper hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_var(--color-ink)] transition-all cursor-pointer relative overflow-hidden group">
+                  <label className="hidden md:flex w-32 h-32 bg-paper border-ink flex-col items-center justify-center text-ink/60 hover:bg-ledger-blue hover:text-paper hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_var(--color-ink)] transition-all cursor-pointer relative overflow-hidden group">
                     <Camera className="w-6 h-6 mb-2 transition-transform group-hover:scale-110" />
                     <span className="font-mono text-xs font-bold uppercase tracking-widest">Add</span>
                     <input
@@ -459,7 +649,7 @@ const Sell = () => {
 
                   <div className="flex md:hidden gap-3">
                     {/* Mobile - Direct Camera */}
-                    <label className="w-32 h-32 bg-paper border-[var(--border-w)] border-ink flex flex-col items-center justify-center text-ink/60 hover:bg-ledger-blue hover:text-paper hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_var(--color-ink)] transition-all cursor-pointer relative overflow-hidden">
+                    <label className="w-32 h-32 bg-paper  border-ink flex flex-col items-center justify-center text-ink/60 hover:bg-ledger-blue hover:text-paper hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_var(--color-ink)] transition-all cursor-pointer relative overflow-hidden">
                       <Camera className="w-6 h-6 mb-2" />
                       <span className="font-mono text-xs font-bold uppercase tracking-widest">Camera</span>
                       <input
@@ -472,7 +662,7 @@ const Sell = () => {
                     </label>
 
                     {/* Mobile - Gallery */}
-                    <label className="w-32 h-32 bg-paper border-[var(--border-w)] border-ink flex flex-col items-center justify-center text-ink/60 hover:bg-ledger-blue hover:text-paper hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_var(--color-ink)] transition-all cursor-pointer relative overflow-hidden">
+                    <label className="w-32 h-32 bg-paper  border-ink flex flex-col items-center justify-center text-ink/60 hover:bg-ledger-blue hover:text-paper hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_var(--color-ink)] transition-all cursor-pointer relative overflow-hidden">
                       <ImageIcon className="w-6 h-6 mb-2" />
                       <span className="font-mono text-xs font-bold uppercase tracking-widest">Gallery</span>
                       <input
@@ -500,7 +690,7 @@ const Sell = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Engineering Mathematics B.S. Grewal"
-              className="w-full px-4 py-3 bg-paper border-[var(--border-w)] border-ink font-body font-medium text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40"
+              className="w-full px-4 py-3 bg-paper border-w-[var(--border-w)] border-ink font-body font-medium text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40"
             />
           </div>
 
@@ -541,7 +731,7 @@ const Sell = () => {
                 Selling Price (₹) <span className="text-stamp-red">*</span>
               </label>
               <div className="relative flex">
-                <span className="flex items-center justify-center w-12 bg-ledger-blue border-[var(--border-w)] border-r-0 border-ink text-paper font-mono font-bold text-lg">
+                <span className="flex items-center justify-center w-12 bg-ledger-blue border-w-[var(--border-w)] border-r-0 border-ink text-paper font-mono font-bold text-lg">
                   ₹
                 </span>
                 <input
@@ -550,7 +740,7 @@ const Sell = () => {
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="Enter price"
-                  className="w-full px-4 py-3 bg-paper border-[var(--border-w)] border-ink font-mono font-bold text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40"
+                  className="w-full px-4 py-3 bg-paper border-w-[var(--border-w)] border-ink font-mono font-bold text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40"
                 />
               </div>
             </div>
@@ -582,7 +772,7 @@ const Sell = () => {
                 <span className="text-ink/50 font-medium lowercase">(optional)</span>
               </label>
               <div className="relative flex">
-                <span className="flex items-center justify-center w-12 bg-ledger-blue border-[var(--border-w)] border-r-0 border-ink text-paper font-mono font-bold text-lg">
+                <span className="flex items-center justify-center w-12 bg-ledger-blue border-w-[var(--border-w)] border-r-0 border-ink text-paper font-mono font-bold text-lg">
                   ₹
                 </span>
                 <input
@@ -590,7 +780,7 @@ const Sell = () => {
                   value={originalPrice}
                   onChange={(e) => setOriginalPrice(e.target.value)}
                   placeholder="Original MRP"
-                  className="w-full px-4 py-3 bg-paper border-[var(--border-w)] border-ink font-mono font-medium text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40"
+                  className="w-full px-4 py-3 bg-paper border-w-[var(--border-w)] border-ink font-mono font-medium text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40"
                 />
               </div>
             </div>
@@ -607,7 +797,7 @@ const Sell = () => {
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                   placeholder="Ambassador Code"
-                  className="w-full px-4 py-3 bg-paper border-[var(--border-w)] border-ink font-mono font-bold text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40 uppercase tracking-widest"
+                  className="w-full px-4 py-3 bg-paper border-w-[var(--border-w)] border-ink font-mono font-bold text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40 uppercase tracking-widest"
                 />
               </div>
             )}
@@ -627,7 +817,7 @@ const Sell = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe your item in detail..."
-              className="w-full px-4 py-3 bg-paper border-[var(--border-w)] border-ink font-body font-medium text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40 resize-y"
+              className="w-full px-4 py-3 bg-paper border-w-[var(--border-w)] border-ink font-body font-medium text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40 resize-y"
             ></textarea>
           </div>
 
@@ -642,7 +832,7 @@ const Sell = () => {
               value={videoProof}
               onChange={(e) => setVideoProof(e.target.value)}
               placeholder="https://drive.google.com/file/d/..."
-              className="w-full px-4 py-3 bg-paper border-[var(--border-w)] border-ink font-body font-medium text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40"
+              className="w-full px-4 py-3 bg-paper border-w-[var(--border-w)] border-ink font-body font-medium text-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ledger-blue focus:ring-offset-paper transition-all placeholder:text-ink/40"
             />
             <p className="font-body text-xs font-medium text-ink/70 mt-2">
               Add a public Google Drive file link for a product video. Make sure

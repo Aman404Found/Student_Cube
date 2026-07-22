@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, useMemo } from "react";
 import type { ReactNode } from "react"; 
+import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import api from "../utils/api";
 
@@ -43,19 +44,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return localStorage.getItem("token");
   });
 
-  const login = (userData: User, authToken: string) => {
+  const queryClient = useQueryClient();
+
+  const login = useCallback((userData: User, authToken: string) => {
     setUser(userData);
     setToken(authToken);
     localStorage.setItem("token", authToken);
     localStorage.setItem("user", JSON.stringify(userData));
-  };
+  }, []);
 
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-  }, []);
+    queryClient.clear();
+  }, [queryClient]);
 
   const refreshUser = useCallback(async () => {
     if (!token) return null;
@@ -94,8 +98,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [refreshUser, token]);
 
+  const value = useMemo(
+    () => ({ user, token, login, logout, refreshUser }),
+    [user, token, login, logout, refreshUser]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, refreshUser }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

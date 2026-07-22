@@ -378,6 +378,10 @@ export const getProducts = async (req, res) => {
 
     const searchWords = getSearchWords(search);
     if (searchWords.length > 0) {
+      // Using $regex for substring/partial matching (user expectation: "calc" matches "Calculator").
+      // $text index on {title, category} exists as a future option but $regex is preferred
+      // here for UX continuity. Performance is acceptable for marketplace scale thanks to the
+      // compound indexes that filter on status first.
       andConditions.push({
         $or: searchWords.flatMap((word) => {
           const regex = escapeRegex(word);
@@ -743,6 +747,99 @@ export const deleteMyProduct = async (req, res) => {
   } catch (error) {
     console.error("Error deleting user product:", error);
     res.status(500).json({ success: false, message: "Failed to delete listing" });
+  }
+};
+
+export const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sellerId = req.user?._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid product id" });
+    }
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    if (product.seller.toString() !== sellerId.toString() && req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "You can only edit your own listings" });
+    }
+
+    if (!SELLER_DELETABLE_STATUSES.includes(product.status) && req.user.role !== "admin") {
+      return res.status(400).json({
+        success: false,
+        message: "Reserved or sold listings cannot be edited.",
+      });
+    }
+
+    const {
+      name,
+      title,
+      category,
+      condition,
+      price,
+      originalPrice,
+      description,
+      location,
+      college,
+      images,
+      videoProof,
+    } = req.body;
+
+    const productTitle = name || title;
+    const productCollege = college || location ? normalizeCollegeForStorage(college || location) : undefined;
+
+    if (productTitle) product.title = productTitle;
+    if (category) product.category = category;
+    if (condition) product.condition = condition;
+    if (price) product.price = Number(price);
+    if (originalPrice !== undefined) product.originalPrice = Number(originalPrice);
+    if (description) product.description = description;
+    if (productCollege) product.college = productCollege;
+    if (videoProof !== undefined) {
+      if (videoProof) {
+        const videoValidationError = validateGoogleDriveVideoLink(videoProof);
+        if (videoValidationError) return res.status(400).json({ success: false, message: videoValidationError });
+      }
+      product.videoProof = String(videoProof || "").trim() || undefined;
+    }
+
+    if (images && Array.isArray(images) && images.length > 0) {
+      const imageValidationError = validateProductImages(images, product.seller);
+      if (imageValidationError) return res.status(400).json({ success: false, message: imageValidationError });
+
+      const newPublicIds = images.map(img => img.publicId);
+      const imagesToDelete = product.images.filter(img => !newPublicIds.includes(img.publicId));
+      
+      if (imagesToDelete.length > 0) {
+        await cleanupCloudinaryImages(imagesToDelete, product.seller);
+      }
+      
+      product.images = images.map((image) => ({
+        publicId: image.publicId,
+        url: image.url,
+      }));
+    }
+
+    if (product.status === "rejected") {
+        product.status = "pending";
+        product.rejectionMessage = undefined;
+    }
+
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Listing updated successfully.",
+      data: product,
+    });
+  } catch (error) {
+    console.error("Error updating product:", error);
+    res.status(500).json({ success: false, message: "Failed to update listing" });
   }
 };
 

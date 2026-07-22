@@ -24,6 +24,7 @@ import { Lens } from "../components/ui/lens";
 import { BrutalBadge } from "../components/ui/brutal-badge";
 import { BrutalButton } from "../components/ui/brutal-button";
 import { BrutalLoader } from "../components/ui/brutal-loader";
+import CustomSelect from "../components/ui/CustomSelect";
 
 interface Product {
   _id: string;
@@ -146,9 +147,18 @@ const ProductDetail = () => {
 
   useEffect(() => {
     if (product && product._id) {
-      let recentProducts: Product[] = JSON.parse(
-        localStorage.getItem("recentProducts") || "[]",
-      );
+      const userId = user?._id || user?.id;
+      const recentKey = userId ? `recentProducts_${userId}` : "recentProducts_guest";
+      let recentProducts: Product[] = [];
+      try {
+        recentProducts = JSON.parse(
+          localStorage.getItem(recentKey) || "[]",
+        );
+        if (!Array.isArray(recentProducts)) recentProducts = [];
+      } catch {
+        recentProducts = [];
+      }
+
       recentProducts = recentProducts.filter(
         (p: Product) => p._id !== product._id,
       );
@@ -158,9 +168,9 @@ const ProductDetail = () => {
         recentProducts.pop();
       }
 
-      localStorage.setItem("recentProducts", JSON.stringify(recentProducts));
+      localStorage.setItem(recentKey, JSON.stringify(recentProducts));
     }
-  }, [product]);
+  }, [product, user]);
 
 
 
@@ -171,6 +181,57 @@ const ProductDetail = () => {
   const [isMarkingSold, setIsMarkingSold] = useState(false);
   const [isAdminDeleting, setIsAdminDeleting] = useState(false);
 
+  // Edit Product State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    price: "",
+    originalPrice: "",
+    description: "",
+    condition: "",
+    category: "",
+  });
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  const handleOpenEditModal = () => {
+    setEditForm({
+      title: product?.title || product?.name || "",
+      price: product?.price ? String(product.price) : "",
+      originalPrice: product?.originalPrice ? String(product.originalPrice) : "",
+      description: product?.description || "",
+      condition: product?.condition || "",
+      category: product?.category || "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.SubmitEvent) => {
+    e.preventDefault();
+    if (!product) return;
+    setIsSubmittingEdit(true);
+    try {
+      const res = await api.put(`/products/${product._id}`, {
+        ...editForm,
+        price: Number(editForm.price),
+        originalPrice: editForm.originalPrice ? Number(editForm.originalPrice) : undefined,
+      });
+      toast.success(res.data.message || "Product updated successfully");
+      queryClient.setQueryData(['product', id], res.data.data);
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      setIsEditModalOpen(false);
+    } catch (error) {
+      let errorMsg = "Failed to update product";
+      if (axios.isAxiosError(error)) {
+        errorMsg = error.response?.data?.message || errorMsg;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      }
+      toast.error(errorMsg);
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
   const requireLogin = () => {
     if (token) return true;
 
@@ -180,7 +241,7 @@ const ProductDetail = () => {
   };
 
   // Offer Submit Handler
-  const handleSubmitOffer = async (e: React.FormEvent) => {
+  const handleSubmitOffer = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!requireLogin()) return;
 
@@ -238,6 +299,7 @@ const ProductDetail = () => {
       const res = await api.put(`/products/${product?._id}/mark-sold`);
       toast.success(res.data.message || "Product marked as sold");
       queryClient.setQueryData(['product', id], res.data.data);
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
       setIsSellerModalOpen(false);
     } catch (error) {
       let errorMsg = "Failed to mark product as sold";
@@ -264,6 +326,7 @@ const ProductDetail = () => {
     try {
       const res = await api.delete(`/products/admin/${product._id}`);
       toast.success(res.data.message || "Product deleted successfully.");
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
       navigate("/buy");
     } catch (error) {
       let errorMsg = "Failed to delete product";
@@ -489,10 +552,11 @@ const ProductDetail = () => {
                     <button
                       key={idx}
                       onClick={() => setActiveImage(idx)}
-                      className={`w-20 h-20 overflow-hidden border-[var(--border-w-sm)] border-solid shrink-0 transition-all bg-paper brutal-focus ${activeImage === idx
+                      className={`w-20 h-20 overflow-hidden border-[var(--border-w-sm)] border-solid shrink-0 transition-all bg-paper brutal-focus ${
+                        activeImage === idx
                           ? "border-ink shadow-[2px_2px_0px_0px_var(--color-ink)]"
                           : "border-ink/20 opacity-70 hover:opacity-100 hover:border-ink/50"
-                        }`}
+                      }`}
                     >
                       <img
                         src={getProductImageUrl(img)}
@@ -512,7 +576,13 @@ const ProductDetail = () => {
               <span className="font-mono text-[10px] font-semibold uppercase tracking-wide text-ink/60 px-2 py-1 bg-paper-blue border-[var(--border-w-sm)] border-solid border-ink">
                 {product.category}
               </span>
-              <BrutalBadge condition={product.condition?.toLowerCase() === "like new" ? "like-new" : "good"}>
+              <BrutalBadge
+                condition={
+                  product.condition?.toLowerCase() === "like new"
+                    ? "like-new"
+                    : "good"
+                }
+              >
                 {product.condition}
               </BrutalBadge>
             </div>
@@ -530,11 +600,18 @@ const ProductDetail = () => {
                   ₹{product.originalPrice?.toLocaleString("en-IN")}
                 </span>
               )}
-              {product.originalPrice && product.price && product.originalPrice > product.price && (
-                <span className="font-mono text-[10px] sm:text-xs font-bold px-2 py-1 bg-stamp-red text-paper border-[var(--border-w-sm)] border-solid border-ink shadow-[2px_2px_0_0_var(--color-ink)] mb-1 -rotate-2">
-                  {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
-                </span>
-              )}
+              {product.originalPrice &&
+                product.price &&
+                product.originalPrice > product.price && (
+                  <span className="font-mono text-[10px] sm:text-xs font-bold px-2 py-1 bg-stamp-red text-paper border-[var(--border-w-sm)] border-solid border-ink shadow-[2px_2px_0_0_var(--color-ink)] mb-1 -rotate-2">
+                    {Math.round(
+                      ((product.originalPrice - product.price) /
+                        product.originalPrice) *
+                        100,
+                    )}
+                    % OFF
+                  </span>
+                )}
             </div>
 
             {/* Description */}
@@ -595,8 +672,8 @@ const ProductDetail = () => {
                     <p className="font-body text-lg font-bold text-ink truncate">
                       {isUnlocked
                         ? product.seller?.username ||
-                        product.seller?.name ||
-                        "Verified Student"
+                          product.seller?.name ||
+                          "Verified Student"
                         : "Hidden Student"}
                     </p>
                   </div>
@@ -637,7 +714,16 @@ const ProductDetail = () => {
                     </BrutalButton>
                   </div>
                 ) : isOwner ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <BrutalButton
+                      onClick={handleOpenEditModal}
+                      disabled={product.status === "SOLD_OUT"}
+                      variant="secondary"
+                      className="w-full shrink-0"
+                    >
+                      <Tag className="w-5 h-5 mr-2 shrink-0 opacity-0 hidden" />
+                      Edit Product
+                    </BrutalButton>
                     <BrutalButton
                       onClick={() => setIsSellerModalOpen(true)}
                       disabled={product.status === "SOLD_OUT"}
@@ -714,7 +800,8 @@ const ProductDetail = () => {
                           </>
                         ) : (
                           <>
-                            <Lock className="w-5 h-5 mr-2 shrink-0" /> Offer to Chat
+                            <Lock className="w-5 h-5 mr-2 shrink-0" /> Offer to
+                            Chat
                           </>
                         )}
                       </BrutalButton>
@@ -760,9 +847,7 @@ const ProductDetail = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-paper rounded-3xl brutal-block w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-ink bg-paper-blue">
-              <h3 className="text-xl font-extrabold text-ink">
-                Make an Offer
-              </h3>
+              <h3 className="text-xl font-extrabold text-ink">Make an Offer</h3>
               <p className="text-xs font-semibold text-slate-500 mt-1">
                 Current Price:{" "}
                 <span className="text-blue-600">
@@ -865,8 +950,8 @@ const ProductDetail = () => {
                         setCounterAmount("");
                       }}
                       className={`w-full text-left p-4 transition-all brutal-focus group ${
-                        selectedOffer?._id === offer._id 
-                          ? "brutal-block-sm bg-paper border-[length:var(--border-w)] border-solid border-ink" 
+                        selectedOffer?._id === offer._id
+                          ? "brutal-block-sm bg-paper border-[length:var(--border-w)] border-solid border-ink"
                           : "bg-paper border-[length:var(--border-w)] border-solid border-transparent hover:border-ink hover:shadow-[3px_3px_0_0_var(--color-ink)]"
                       }`}
                     >
@@ -881,7 +966,9 @@ const ProductDetail = () => {
                           {getOfferStatusLabel(offer.status)}
                         </span>
                       </div>
-                      <p className={`font-mono text-2xl font-black ${selectedOffer?._id === offer._id ? "text-ledger-blue" : "text-ink"}`}>
+                      <p
+                        className={`font-mono text-2xl font-black ${selectedOffer?._id === offer._id ? "text-ledger-blue" : "text-ink"}`}
+                      >
                         ₹{offer.offeredPrice}
                       </p>
                       {offer.counterPrice ? (
@@ -952,7 +1039,7 @@ const ProductDetail = () => {
                           Rejected
                         </div>
                       ) : null}
-                      
+
                       {["pending", "rejected", "countered"].includes(
                         selectedOffer.status,
                       ) ? (
@@ -1058,7 +1145,8 @@ const ProductDetail = () => {
               Mark as Sold?
             </h3>
             <p className="font-body text-ink/80 font-medium mb-8 leading-relaxed">
-              It will show as sold out for 24 hours and buyers will not be able to make offers.
+              It will show as sold out for 24 hours and buyers will not be able
+              to make offers.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <button
@@ -1073,6 +1161,164 @@ const ProductDetail = () => {
                 className="flex-1 bg-campus-green brutal-block-sm text-[#0A0A0A] font-bold py-3 uppercase tracking-wide transition-transform duration-120 hover:translate-y-[-2px] disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {isMarkingSold ? "Marking..." : "OK"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Product Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-120 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-paper brutal-block max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden relative">
+            <div className="p-5 border-b-[length:var(--border-w)] border-ink bg-paper-blue flex justify-between items-center shrink-0">
+              <h3 className="font-display text-2xl font-black text-ink uppercase tracking-tight">
+                Edit Product
+              </h3>
+              <button onClick={() => setIsEditModalOpen(false)}>
+                <X className="w-6 h-6 hover:text-stamp-red transition-colors" />
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto">
+              <form
+                id="editForm"
+                onSubmit={handleEditSubmit}
+                className="flex flex-col gap-4"
+              >
+                <div>
+                  <label className="block font-mono text-xs font-bold text-ink mb-1 uppercase">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.title}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, title: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-paper border-2 border-solid border-ink font-body font-medium focus:outline-none focus:ring-2 focus:ring-ledger-blue"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-mono text-xs font-bold text-ink mb-1 uppercase">
+                      Price (₹)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={editForm.price}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, price: e.target.value })
+                      }
+                      className="w-full px-3 py-2 bg-paper border-2 border-solid border-ink font-mono font-bold focus:outline-none focus:ring-2 focus:ring-ledger-blue"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-mono text-xs font-bold text-ink mb-1 uppercase">
+                      Original Price (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={editForm.originalPrice}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          originalPrice: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 bg-paper border-2 border-solid border-ink font-mono font-bold focus:outline-none focus:ring-2 focus:ring-ledger-blue"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block font-mono text-xs font-bold text-ink mb-1 uppercase">
+                    Description
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={editForm.description}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, description: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-paper border-2 border-solid border-ink font-body font-medium focus:outline-none focus:ring-2 focus:ring-ledger-blue"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4 relative">
+                  <div className="relative z-[60]">
+                    <label className="block font-mono text-xs font-bold text-ink mb-1 uppercase">
+                      Category
+                    </label>
+                    <CustomSelect
+                      direction="up"
+                      value={editForm.category}
+                      onChange={(val) =>
+                        setEditForm({ ...editForm, category: val })
+                      }
+                      options={[
+                        { value: "Books & Notes", label: "Books & Notes" },
+                        { value: "Calculators", label: "Calculators" },
+                        {
+                          value: "Drafters & Instruments",
+                          label: "Drafters & Instruments",
+                        },
+                        {
+                          value: "Aakash/Assignment Materials",
+                          label: "Aakash/Assignment Materials",
+                        },
+                        {
+                          value: "Lab Coats & Uniforms",
+                          label: "Lab Coats & Uniforms",
+                        },
+                        {
+                          value: "Electronics & Gadgets",
+                          label: "Electronics & Gadgets",
+                        },
+                        {
+                          value: "IOT and Robotics",
+                          label: "IOT and Robotics",
+                        },
+                        { value: "Others", label: "Others" },
+                      ]}
+                    />
+                  </div>
+                  <div className="relative z-[50]">
+                    <label className="block font-mono text-xs font-bold text-ink mb-1 uppercase">
+                      Condition
+                    </label>
+                    <CustomSelect
+                      direction="up"
+                      value={editForm.condition}
+                      onChange={(val) =>
+                        setEditForm({ ...editForm, condition: val })
+                      }
+                      options={[
+                        { value: "New", label: "New" },
+                        { value: "Like New", label: "Like New" },
+                        { value: "Good", label: "Good" },
+                        { value: "Fair", label: "Fair" },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div className="p-5 border-t-[length:var(--border-w)] border-ink flex gap-4 shrink-0 bg-paper">
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="flex-1 bg-paper-blue brutal-block-sm text-ink font-bold py-3 uppercase tracking-wide transition-transform hover:-translate-y-1"
+              >
+                Cancel
+              </button>
+              <button
+                form="editForm"
+                type="submit"
+                disabled={isSubmittingEdit}
+                className="flex-1 bg-ledger-blue brutal-block-sm text-paper font-bold py-3 uppercase tracking-wide transition-transform hover:-translate-y-1 disabled:opacity-60"
+              >
+                {isSubmittingEdit ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>

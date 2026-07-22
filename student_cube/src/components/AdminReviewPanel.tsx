@@ -194,7 +194,7 @@ const AdminReviewPanel = () => {
     setRejectionMessage("");
   };
 
-  const submitRejection = (event: React.FormEvent) => {
+  const submitRejection = (event: React.SubmitEvent) => {
     event.preventDefault();
     const trimmedMessage = rejectionMessage.trim();
     if (!rejectionProduct || !trimmedMessage) {

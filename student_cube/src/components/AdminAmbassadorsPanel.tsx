@@ -208,7 +208,7 @@ const AdminAmbassadorsPanel = () => {
     setSelectedAmbassador(updatedAmbassador);
   };
 
-  const handleCreateAmbassador = async (event: React.FormEvent) => {
+  const handleCreateAmbassador = async (event: React.SubmitEvent) => {
     event.preventDefault();
 
     if (!selectedUser) {
@@ -238,7 +238,7 @@ const AdminAmbassadorsPanel = () => {
     }
   };
 
-  const handlePayoutSubmit = async (event: React.FormEvent) => {
+  const handlePayoutSubmit = async (event: React.SubmitEvent) => {
     event.preventDefault();
     if (!selectedAmbassador) return;
 
@@ -267,7 +267,7 @@ const AdminAmbassadorsPanel = () => {
     }
   };
 
-  const handleAssignReferCode = async (event: React.FormEvent) => {
+  const handleAssignReferCode = async (event: React.SubmitEvent) => {
     event.preventDefault();
     if (!selectedAmbassador) return;
 

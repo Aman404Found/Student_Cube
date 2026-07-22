@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, memo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -18,6 +18,7 @@ import {
   CheckCheck,
   CornerUpLeft,
   X,
+  XCircle,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -90,7 +91,7 @@ interface ChatMessage {
     };
   };
   createdAt?: string;
-  deliveryStatus?: "sent" | "read";
+  deliveryStatus?: "sent" | "read" | "failed";
 }
 
 interface ChatListItem {
@@ -167,6 +168,154 @@ const getDateLabel = (value?: string) => {
     year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
   });
 };
+
+interface MessageItemProps {
+  msg: ChatMessage;
+  idx: number;
+  currentUserId: string;
+  canSendCustom: boolean;
+  showDateSeparator: boolean;
+  onReply?: (msg: ChatMessage) => void;
+  offerCardNode: React.ReactNode | null;
+}
+
+const MessageItem = memo(({
+  msg,
+  idx,
+  currentUserId,
+  canSendCustom,
+  showDateSeparator,
+  onReply,
+  offerCardNode,
+}: MessageItemProps) => {
+  const senderId = getUserId(msg.sender);
+  const isMe = senderId === currentUserId;
+
+  const label = isMe
+    ? "Me"
+    : canSendCustom
+      ? getUserName(msg.sender)
+      : "Hidden Student";
+
+  // Centered plain-text status line, e.g. "❌ Offer of ₹18,000 declined."
+  if (msg.kind === "SYSTEM") {
+    return (
+      <div key={msg._id || idx}>
+        {showDateSeparator && (
+          <div className="flex justify-center my-6">
+            <span className="px-3 py-1 bg-paper border-[length:var(--border-w-sm)] border-ink font-mono text-[10px] font-bold text-ink uppercase">
+              {getDateLabel(msg.createdAt)}
+            </span>
+          </div>
+        )}
+        <div className="flex justify-center py-2">
+          <span className="font-mono text-xs font-bold text-ink/60 text-center uppercase">
+            {msg.text}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Green pill banner, e.g. "Deal completed — listing sold"
+  if (msg.kind === "BANNER") {
+    return (
+      <div key={msg._id || idx} className="flex justify-center py-2">
+        <span className="inline-flex items-center gap-1.5 brutal-block-sm bg-campus-green text-paper px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider">
+          {msg.text}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div key={msg._id || idx}>
+      {showDateSeparator && (
+        <div className="flex justify-center my-6">
+          <span className="px-3 py-1 bg-paper border-[var(--border-w-sm)] border-ink font-mono text-[10px] font-bold text-ink uppercase">
+            {getDateLabel(msg.createdAt)}
+          </span>
+        </div>
+      )}
+
+      <div className={`flex items-center gap-2 group ${isMe ? "justify-end" : "justify-start"}`}>
+        {isMe && onReply && msg.kind !== "OFFER" && msg.kind !== "COUNTER_OFFER" && (
+          <button
+            onClick={() => onReply(msg)}
+            className="p-1 sm:p-2 bg-transparent sm:bg-paper sm:border-[var(--border-w-sm)] sm:border-ink hover:bg-highlighter sm:brutal-block-sm transition-all opacity-60 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 flex shrink-0 active:scale-95"
+            title="Reply"
+          >
+            <CornerUpLeft className="w-4 h-4 text-ink" />
+          </button>
+        )}
+        {msg.kind === "OFFER" || msg.kind === "COUNTER_OFFER" ? (
+          offerCardNode
+        ) : (
+          <div
+            onDoubleClick={() => onReply && msg.kind !== "OFFER" && msg.kind !== "COUNTER_OFFER" ? onReply(msg) : null}
+            className={`relative max-w-[85%] sm:max-w-[75%] px-3 sm:px-4 py-2 sm:py-3 brutal-block-sm font-body font-medium text-sm md:text-base cursor-default select-text ${isMe
+              ? "bg-signal-orange text-paper"
+              : "bg-paper text-ink"
+              }`}
+          >
+            <div
+              className={`font-mono text-[10px] uppercase font-bold mb-1.5 ${isMe ? "text-paper" : "text-ledger-blue"}`}
+            >
+              {label}
+            </div>
+
+            {msg.metadata?.replyTo && (
+              <div className={`mb-2 px-3 py-1.5 flex flex-col gap-0.5 rounded-r border-l-4 ${isMe ? "bg-black/20 border-paper" : "bg-black/5 border-ledger-blue"}`}>
+                <span className={`font-display text-[10px] uppercase font-bold ${isMe ? "text-paper" : "text-ledger-blue"}`}>
+                  {msg.metadata.replyTo.senderName}
+                </span>
+                <span className={`font-body text-xs line-clamp-2 ${isMe ? "text-paper/90" : "text-ink/90"}`}>
+                  {msg.metadata.replyTo.text}
+                </span>
+              </div>
+            )}
+
+            <div className="leading-relaxed whitespace-pre-wrap break-words">
+              {msg.text}
+            </div>
+            <div
+              className={`flex justify-end items-center gap-1 mt-2 font-mono text-[9px] font-bold ${isMe ? "text-paper/80" : "text-ink/50"}`}
+            >
+              <span>
+                {msg.createdAt
+                  ? new Date(msg.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                  : "Just now"}
+              </span>
+              {isMe && (
+                <span className="flex items-center ml-1">
+                  {msg.deliveryStatus === "failed" ? (
+                    <XCircle className="w-3.5 h-3.5 text-paper" strokeWidth={3} />
+                  ) : msg.deliveryStatus === "read" ? (
+                    <CheckCheck className="w-3.5 h-3.5" strokeWidth={3} />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        {!isMe && onReply && msg.kind !== "OFFER" && msg.kind !== "COUNTER_OFFER" && (
+          <button
+            onClick={() => onReply(msg)}
+            className="p-1 sm:p-2 bg-transparent sm:bg-paper sm:border-[var(--border-w-sm)] sm:border-ink hover:bg-highlighter sm:brutal-block-sm transition-all opacity-60 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 flex shrink-0 active:scale-95"
+            title="Reply"
+          >
+            <CornerUpLeft className="w-4 h-4 text-ink" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+});
 
 interface MessagesPaneProps {
   isLoading: boolean;
@@ -388,135 +537,25 @@ const MessagesPane = ({
           </div>
         ) : (
           messages.map((msg, idx) => {
-            const senderId = getUserId(msg.sender);
-            const isMe = senderId === currentUserId;
-
-            const label = isMe
-              ? "Me"
-              : canSendCustom
-                ? getUserName(msg.sender)
-                : "Hidden Student";
-
             const showDateSeparator =
               idx === 0 ||
               getMessageDateKey(msg.createdAt) !==
               getMessageDateKey(messages[idx - 1]?.createdAt);
 
-            // Centered plain-text status line, e.g. "❌ Offer of ₹18,000 declined."
-            if (msg.kind === "SYSTEM") {
-              return (
-                <div key={msg._id || idx}>
-                  {showDateSeparator && (
-                    <div className="flex justify-center my-6">
-                      <span className="px-3 py-1 bg-paper border-[var(--border-w-sm)] border-ink font-mono text-[10px] font-bold text-ink uppercase">
-                        {getDateLabel(msg.createdAt)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-center py-2">
-                    <span className="font-mono text-xs font-bold text-ink/60 text-center uppercase">
-                      {msg.text}
-                    </span>
-                  </div>
-                </div>
-              );
-            }
-
-            // Green pill banner, e.g. "Deal completed — listing sold"
-            if (msg.kind === "BANNER") {
-              return (
-                <div key={msg._id || idx} className="flex justify-center py-2">
-                  <span className="inline-flex items-center gap-1.5 brutal-block-sm bg-campus-green text-paper px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-wider">
-                    {msg.text}
-                  </span>
-                </div>
-              );
-            }
+            const isOfferCard = msg.kind === "OFFER" || msg.kind === "COUNTER_OFFER";
+            const offerCardNode = isOfferCard ? renderOfferCard(msg, isLatestOfferActivity(idx)) : null;
 
             return (
-              <div key={msg._id || idx}>
-                {showDateSeparator && (
-                  <div className="flex justify-center my-6">
-                    <span className="px-3 py-1 bg-paper border-[var(--border-w-sm)] border-ink font-mono text-[10px] font-bold text-ink uppercase">
-                      {getDateLabel(msg.createdAt)}
-                    </span>
-                  </div>
-                )}
-
-                <div className={`flex items-center gap-2 group ${isMe ? "justify-end" : "justify-start"}`}>
-                  {isMe && onReply && msg.kind !== "OFFER" && msg.kind !== "COUNTER_OFFER" && (
-                    <button
-                      onClick={() => onReply(msg)}
-                      className="p-1 sm:p-2 bg-transparent sm:bg-paper sm:border-[var(--border-w-sm)] sm:border-ink hover:bg-highlighter sm:brutal-block-sm transition-all opacity-60 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 flex shrink-0 active:scale-95"
-                      title="Reply"
-                    >
-                      <CornerUpLeft className="w-4 h-4 text-ink" />
-                    </button>
-                  )}
-                  {msg.kind === "OFFER" || msg.kind === "COUNTER_OFFER" ? (
-                    renderOfferCard(msg, isLatestOfferActivity(idx))
-                  ) : (
-                    <div
-                      onDoubleClick={() => onReply && msg.kind !== "OFFER" && msg.kind !== "COUNTER_OFFER" ? onReply(msg) : null}
-                      className={`relative max-w-[85%] sm:max-w-[75%] px-3 sm:px-4 py-2 sm:py-3 brutal-block-sm font-body font-medium text-sm md:text-base cursor-default select-text ${isMe
-                        ? "bg-signal-orange text-paper"
-                        : "bg-paper text-ink"
-                        }`}
-                    >
-                      <div
-                        className={`font-mono text-[10px] uppercase font-bold mb-1.5 ${isMe ? "text-paper" : "text-ledger-blue"}`}
-                      >
-                        {label}
-                      </div>
-
-                      {msg.metadata?.replyTo && (
-                        <div className={`mb-2 px-3 py-1.5 flex flex-col gap-0.5 rounded-r border-l-4 ${isMe ? "bg-black/20 border-paper" : "bg-black/5 border-ledger-blue"}`}>
-                          <span className={`font-display text-[10px] uppercase font-bold ${isMe ? "text-paper" : "text-ledger-blue"}`}>
-                            {msg.metadata.replyTo.senderName}
-                          </span>
-                          <span className={`font-body text-xs line-clamp-2 ${isMe ? "text-paper/90" : "text-ink/90"}`}>
-                            {msg.metadata.replyTo.text}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="leading-relaxed whitespace-pre-wrap break-words">
-                        {msg.text}
-                      </div>
-                      <div
-                        className={`flex justify-end items-center gap-1 mt-2 font-mono text-[9px] font-bold ${isMe ? "text-paper/80" : "text-ink/50"}`}
-                      >
-                        <span>
-                          {msg.createdAt
-                            ? new Date(msg.createdAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                            : "Just now"}
-                        </span>
-                        {isMe && (
-                          <span className="flex items-center ml-1">
-                            {msg.deliveryStatus === "read" ? (
-                              <CheckCheck className="w-3.5 h-3.5" strokeWidth={3} />
-                            ) : (
-                              <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {!isMe && onReply && msg.kind !== "OFFER" && msg.kind !== "COUNTER_OFFER" && (
-                    <button
-                      onClick={() => onReply(msg)}
-                      className="p-1 sm:p-2 bg-transparent sm:bg-paper sm:border-[var(--border-w-sm)] sm:border-ink hover:bg-highlighter sm:brutal-block-sm transition-all opacity-60 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 flex shrink-0 active:scale-95"
-                      title="Reply"
-                    >
-                      <CornerUpLeft className="w-4 h-4 text-ink" />
-                    </button>
-                  )}
-                </div>
-              </div>
+              <MessageItem
+                key={msg._id || idx}
+                msg={msg}
+                idx={idx}
+                currentUserId={currentUserId}
+                canSendCustom={canSendCustom}
+                showDateSeparator={showDateSeparator}
+                onReply={onReply}
+                offerCardNode={offerCardNode}
+              />
             );
           })
         )}
@@ -554,7 +593,8 @@ const Chat = () => {
       const res = await api.get("/chat");
       return res.data.data || [];
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 30, // 30 seconds — inbox needs freshness for unread badges
+    gcTime: 1000 * 60 * 2, // 2 min garbage collection (default is 5 min)
   });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [prePaymentMessages, setPrePaymentMessages] = useState<string[]>([]);
@@ -671,7 +711,10 @@ const Chat = () => {
       return res.data;
     },
     enabled: !!offerId,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 60 * 5, // 5 min — avoid background refetches that overwrite WebSocket-updated messages
+    gcTime: 1000 * 60 * 2, // 2 min garbage collection
+    refetchOnWindowFocus: false, // WebSocket handles live updates; don't overwrite with stale API data
+    refetchOnReconnect: false,
   });
 
   useEffect(() => {
@@ -683,7 +726,19 @@ const Chat = () => {
 
   useEffect(() => {
     if (offerId && chatData?.success) {
-      setMessages(chatData.data || []);
+      // Merge API messages with local state using dedup by _id.
+      // Handles all scenarios correctly:
+      // 1. Initial load (prev empty) → all API messages populate
+      // 2. Background refetch (WebSocket active) → only truly new API msgs added, overwrite prevented
+      // 3. Return visit (was away, new msgs arrived) → API fresh data merged into existing messages
+      setMessages(prev => {
+        if (prev.length === 0) return chatData.data || [];
+        const existingIds = new Set(prev.map(m => m._id).filter(Boolean));
+        const apiMessages: ChatMessage[] = chatData.data || [];
+        const newFromApi = apiMessages.filter(m => m._id && !existingIds.has(m._id));
+        if (newFromApi.length === 0) return prev;
+        return [...prev, ...newFromApi];
+      });
       setCanSendCustom(Boolean(chatData.canSendCustom));
       setLockedMessage(chatData.lockedMessage);
       setLifecycle(chatData.lifecycle || null);
@@ -708,7 +763,9 @@ const Chat = () => {
     if (isQueryLoading) {
       // Clear chat only when actually fetching new uncached data
       setIsLoading(true);
-      setMessages([]);
+      // Only clear messages on INITIAL load (when messages array is empty from mount),
+      // not on background refetches that would wipe WebSocket-updated messages.
+      setMessages((prev) => prev.length > 0 ? prev : []);
     }
   }, [isQueryLoading]);
 
@@ -728,6 +785,12 @@ const Chat = () => {
             queryClient.invalidateQueries({ queryKey: ['chatHistory', eventOfferId] });
           } else {
             if (payload.type === "offer_updated" || payload.type === "payment_updated") {
+            if (chatProduct?._id) {
+              queryClient.invalidateQueries({ queryKey: ["product", chatProduct._id] });
+            } else {
+              queryClient.invalidateQueries({ queryKey: ["product"] });
+            }
+            queryClient.invalidateQueries({ queryKey: ["products"] });
               queryClient.invalidateQueries({ queryKey: ['chatHistory', eventOfferId] });
             }
           }
@@ -745,108 +808,124 @@ const Chat = () => {
   useEffect(() => {
     if (!offerId || !token) return;
 
-    const ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
+    let ws: WebSocket | null = null;
     let isIntentionalClose = false;
-    wsRef.current = ws;
+    let reconnectTimeout: number;
 
-    ws.onopen = () => {
-      setIsSocketReady(true);
-      ws.send(JSON.stringify({ type: "join", offerId }));
-    };
+    const connect = () => {
+      ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`);
+      wsRef.current = ws;
 
-    ws.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
+      ws.onopen = () => {
+        setIsSocketReady(true);
+        ws?.send(JSON.stringify({ type: "join", offerId }));
+      };
 
-        if (payload.type === "message") {
-          if (payload.offerId && payload.offerId !== offerId) return;
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
 
-          setMessages((prev) => {
-            // Deduplicate or replace optimistic messages using clientMessageId
-            if (payload.message?.clientMessageId) {
-              const existingIndex = prev.findIndex(
-                (msg) => msg._id === payload.message.clientMessageId
-              );
-              if (existingIndex !== -1) {
-                const newMessages = [...prev];
-                const isIncoming = getUserId(payload.message?.sender) !== currentUserId;
-                newMessages[existingIndex] = {
-                  ...payload.message,
-                  deliveryStatus: isIncoming ? "read" : payload.message?.deliveryStatus || "sent",
-                };
-                return newMessages;
+          if (payload.type === "message") {
+            if (payload.offerId && payload.offerId !== offerId) return;
+
+            setMessages((prev) => {
+              // Deduplicate or replace optimistic messages using clientMessageId
+              if (payload.message?.clientMessageId) {
+                const existingIndex = prev.findIndex(
+                  (msg) => msg._id === payload.message.clientMessageId
+                );
+                if (existingIndex !== -1) {
+                  const newMessages = [...prev];
+                  const isIncoming = getUserId(payload.message?.sender) !== currentUserId;
+                  newMessages[existingIndex] = {
+                    ...payload.message,
+                    deliveryStatus: isIncoming ? "read" : payload.message?.deliveryStatus || "sent",
+                  };
+                  return newMessages;
+                }
               }
+
+              if (
+                payload.message?._id &&
+                prev.some((msg) => msg._id === payload.message._id)
+              ) {
+                return prev;
+              }
+              const isIncoming =
+                getUserId(payload.message?.sender) !== currentUserId;
+              return [
+                ...prev,
+                {
+                  ...payload.message,
+                  deliveryStatus: isIncoming
+                    ? "read"
+                    : payload.message?.deliveryStatus || "sent",
+                },
+              ];
+            });
+
+            if (getUserId(payload.message?.sender) !== currentUserId) {
+              markCurrentChatRead(offerId);
             }
+          }
 
-            if (
-              payload.message?._id &&
-              prev.some((msg) => msg._id === payload.message._id)
-            ) {
-              return prev;
+          if (payload.type === "error") {
+            toast.error(payload.message || "Chat error.");
+          }
+
+          if (payload.type === "chat_read") {
+            if (payload.offerId === offerId) {
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.deliveryStatus !== "read" && getUserId(msg.sender) === currentUserId
+                    ? { ...msg, deliveryStatus: "read" }
+                    : msg
+                )
+              );
             }
-            const isIncoming =
-              getUserId(payload.message?.sender) !== currentUserId;
-            return [
-              ...prev,
-              {
-                ...payload.message,
-                deliveryStatus: isIncoming
-                  ? "read"
-                  : payload.message?.deliveryStatus || "sent",
-              },
-            ];
-          });
-
-          if (getUserId(payload.message?.sender) !== currentUserId) {
-            markCurrentChatRead(offerId);
           }
+        } catch (error) {
+          console.error("Invalid chat socket message:", error);
         }
+      };
 
-        if (payload.type === "error") {
-          toast.error(payload.message || "Chat error.");
+      ws.onclose = () => {
+        if (!isIntentionalClose) {
+          setIsSocketReady(false);
+          // BUG-009: Automatic reconnect with 3s backoff
+          reconnectTimeout = window.setTimeout(connect, 3000);
         }
+      };
 
-        if (payload.type === "chat_read") {
-          if (payload.offerId === offerId) {
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.deliveryStatus !== "read" && getUserId(msg.sender) === currentUserId
-                  ? { ...msg, deliveryStatus: "read" }
-                  : msg
-              )
-            );
-          }
-        }
-      } catch (error) {
-        console.error("Invalid chat socket message:", error);
-      }
+      ws.onerror = () => {
+        if (isIntentionalClose) return;
+        setIsSocketReady(false);
+        // Error will trigger onclose which handles the reconnect
+      };
     };
 
-    ws.onclose = () => {
-      if (!isIntentionalClose) setIsSocketReady(false);
-    };
-    ws.onerror = () => {
-      if (isIntentionalClose) return;
-      setIsSocketReady(false);
-      toast.error("Chat connection failed.");
-    };
+    connect();
 
     return () => {
       isIntentionalClose = true;
-      ws.onopen = null;
-      ws.onmessage = null;
-      ws.onerror = null;
-      ws.onclose = null;
+      window.clearTimeout(reconnectTimeout);
+      
+      if (ws) {
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onerror = null;
+        ws.onclose = null;
 
-      if (wsRef.current === ws) {
-        wsRef.current = null;
-        setIsSocketReady(false);
-      }
+        if (wsRef.current === ws) {
+          wsRef.current = null;
+          setIsSocketReady(false);
+        }
 
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      } else if (ws.readyState === WebSocket.CONNECTING) {
-        ws.onopen = () => ws.close();
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close();
+        } else if (ws.readyState === WebSocket.CONNECTING) {
+          ws.onopen = () => ws?.close();
+        }
       }
     };
   }, [offerId, token]);
@@ -992,6 +1071,24 @@ const Chat = () => {
       }),
     );
     setReplyingTo(null);
+
+    // BUG-008: Unconfirmed message timeout loop
+    setTimeout(() => {
+      setMessages((currentMessages) => {
+        const msgIndex = currentMessages.findIndex((m) => m._id === clientMessageId);
+        // If the message is still in the state with the temporary clientMessageId,
+        // it means the server never sent a broadcast back to replace it with a real DB ID.
+        if (msgIndex !== -1) {
+          const updatedMessages = [...currentMessages];
+          updatedMessages[msgIndex] = {
+            ...updatedMessages[msgIndex],
+            deliveryStatus: "failed",
+          };
+          return updatedMessages;
+        }
+        return currentMessages;
+      });
+    }, 5000);
   };
 
   const getLatestOfferId = () => {
@@ -1014,7 +1111,7 @@ const Chat = () => {
     sendMessage(text, "PREDEFINED");
   };
 
-  const handleChatOfferSubmit = async (event: React.FormEvent) => {
+  const handleChatOfferSubmit = async (event: React.SubmitEvent) => {
     event.preventDefault();
 
     const amount = Number(chatOfferPrice);
@@ -1445,7 +1542,7 @@ const MessageInputForm = ({
 }) => {
   const [text, setText] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!text.trim() || !canSendCustom) return;
     onSendMessage(text);
