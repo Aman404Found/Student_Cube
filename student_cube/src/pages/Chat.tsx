@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, memo } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, memo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -620,6 +620,10 @@ const Chat = () => {
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
   const lastSentAtRef = useRef<number>(0);
+
+  const handleReply = useCallback((message: ChatMessage) => {
+    setReplyingTo(message);
+  }, []);
 
   useGSAP(() => {
     if (prefersReducedMotion()) return;
@@ -1400,7 +1404,7 @@ const Chat = () => {
           offerActionLoading={offerActionLoading}
           onOfferAction={handleOfferCardAction}
           offerIdFallback={offerId || ""}
-          onReply={(msg) => setReplyingTo(msg)}
+          onReply={handleReply}
         />
 
         <div className="bg-paper p-3 sm:p-4 md:p-6 border-t-[length:var(--border-w)] border-ink shrink-0 z-10">
