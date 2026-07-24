@@ -2,22 +2,11 @@ import Offer from "../models/Offer.js";
 import Product from "../models/Product.js";
 import Chat from "../models/Chat.js";
 import User from "../models/User.js";
-import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import { getOrCreateChatForOffer, recordChatMessage } from "../utils/chatService.js";
 import { notifyUsers } from "../utils/realtime.js";
 
 dotenv.config();
-
-// 📧 NODEMAILER SETUP
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 const formatPublicImages = (images = []) => (
   images
