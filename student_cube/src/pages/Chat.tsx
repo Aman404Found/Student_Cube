@@ -446,7 +446,7 @@ const MessagesPane = ({
       bgColor = "bg-campus-green";
       borderColor = "border-ink";
       tagColor = "bg-ink text-campus-green";
-      icon = "✅";
+      icon = "";
     } else if (status === "rejected" || status === "revoked") {
       bgColor = "bg-stamp-red";
       borderColor = "border-ink";
@@ -721,6 +721,23 @@ const Chat = () => {
     refetchOnReconnect: false,
   });
 
+  // Conversation state belongs to one offer only. Clear it before loading the
+  // next offer so cached messages from the previously selected chat cannot be
+  // rendered in the new chat window.
+  useEffect(() => {
+    setMessages([]);
+    setIsLoading(true);
+    setCanSendCustom(false);
+    setPrePaymentMessages([]);
+    setLockedMessage(null);
+    setLifecycle(null);
+    setChatTitle("Chat");
+    setOtherUser(null);
+    setChatProduct(null);
+    setChatSellerId("");
+    setReplyingTo(null);
+  }, [offerId]);
+
   useEffect(() => {
     if (isError) {
       toast.error("Unable to open this chat.");
@@ -788,6 +805,12 @@ const Chat = () => {
           if (eventOfferId !== offerId) {
             queryClient.invalidateQueries({ queryKey: ['chatHistory', eventOfferId] });
           } else {
+            // A room broadcast can be missed while this socket is joining or
+            // reconnecting. The user-level update is the reliable fallback.
+            if (payload.type === "chat_updated") {
+              queryClient.invalidateQueries({ queryKey: ['chatHistory', eventOfferId] });
+            }
+
             if (payload.type === "offer_updated" || payload.type === "payment_updated") {
             if (chatProduct?._id) {
               queryClient.invalidateQueries({ queryKey: ["product", chatProduct._id] });
@@ -828,6 +851,13 @@ const Chat = () => {
       ws.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data);
+
+          if (payload.type === "joined" && payload.offerId === offerId) {
+            // The server has now registered this connection in the offer room.
+            // Refresh once to recover any messages sent while the room joined.
+            queryClient.invalidateQueries({ queryKey: ['chatHistory', offerId] });
+            return;
+          }
 
           if (payload.type === "message") {
             if (payload.offerId && payload.offerId !== offerId) return;
@@ -932,7 +962,7 @@ const Chat = () => {
         }
       }
     };
-  }, [offerId, token]);
+  }, [offerId, token, queryClient, currentUserId]);
 
   // function for payment - implement your logic here
   const handleUnlockPayment = async () => {
@@ -1182,8 +1212,18 @@ const Chat = () => {
   ) => {
     setMessages((current) =>
       current.map((message) =>
-        message.kind === "OFFER" && message.metadata?.offerId === nextOfferId
-          ? { ...message, metadata: { ...message.metadata, status } }
+        (message.kind === "OFFER" || message.kind === "COUNTER_OFFER") &&
+        message.metadata?.offerId === nextOfferId
+          ? {
+              ...message,
+              metadata: {
+                ...message.metadata,
+                status,
+                // The action controls use currentStatus so update it alongside
+                // the display status as soon as the offer receives a response.
+                currentStatus: status,
+              },
+            }
           : message,
       ),
     );

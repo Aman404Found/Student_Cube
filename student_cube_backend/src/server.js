@@ -172,7 +172,7 @@ wss.on('connection', async (ws, req) => {
             metadata: payload.metadata || {},
           });
 
-          broadcastToOffer(offerId, {
+          const messageEvent = {
             type: 'message',
             offerId,
             message: {
@@ -180,11 +180,18 @@ wss.on('connection', async (ws, req) => {
               clientMessageId: payload.clientMessageId,
               deliveryStatus: 'sent',
             },
-          });
+          };
+
+          // Room delivery is fast for an already-open chat. Participant-level
+          // delivery also covers the brief period after a browser refresh when
+          // its socket is connected but has not rejoined the room yet.
+          broadcastToOffer(offerId, messageEvent);
           
           const senderId = message.sender._id || message.sender;
           const receiverId = message.receiver._id || message.receiver;
 
+          sendToUser(senderId, messageEvent);
+          sendToUser(receiverId, messageEvent);
           sendToUser(senderId, { type: 'chat_updated', offerId });
           sendToUser(receiverId, { type: 'chat_updated', offerId });
           sendToUser(receiverId, { type: 'unread_changed', offerId });
