@@ -401,6 +401,23 @@ const Sell = () => {
       toast.error(videoValidationError);
       return;
     }
+
+    const sellingPrice = Number(price);
+    const listedOriginalPrice = originalPrice ? Number(originalPrice) : undefined;
+
+    if (!Number.isFinite(sellingPrice) || sellingPrice < 0) {
+      toast.error("Selling price cannot be negative.");
+      return;
+    }
+
+    if (
+      listedOriginalPrice !== undefined &&
+      (!Number.isFinite(listedOriginalPrice) || listedOriginalPrice < 0)
+    ) {
+      toast.error("Original price cannot be negative.");
+      return;
+    }
+
     if (originalPrice && Number(price) >= Number(originalPrice)) {
       toast.error("Selling Price must be less than the Original Price!");
       return;
@@ -590,7 +607,7 @@ const Sell = () => {
       </div>
 
       {/* Form Card */}
-      <div className="max-w-3xl mx-auto bg-paper-blue brutal-block overflow-hidden relative z-10">
+      <div className="max-w-3xl mx-auto bg-paper-blue brutal-surface overflow-hidden relative z-10">
         {message.text && (
           <div
             className={`m-6 p-4 text-sm font-bold font-mono uppercase tracking-wide text-center border-[--border-w-sm] border-solid ${
@@ -737,6 +754,7 @@ const Sell = () => {
                 <input
                   type="number"
                   required
+                  min="0"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="Enter price"
@@ -777,6 +795,7 @@ const Sell = () => {
                 </span>
                 <input
                   type="number"
+                  min="0"
                   value={originalPrice}
                   onChange={(e) => setOriginalPrice(e.target.value)}
                   placeholder="Original MRP"

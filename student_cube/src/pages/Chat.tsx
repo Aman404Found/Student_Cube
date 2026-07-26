@@ -34,7 +34,18 @@ import { BrutalLoader } from "../components/ui/brutal-loader";
 // Helper to fix malformed WS URLs from env vars
 const getWsUrl = () => {
   let url = import.meta.env.VITE_WS_URL;
-  if (!url) return "ws://localhost:5000/ws/chat";
+  if (!url) {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+    if (apiBaseUrl) {
+      const apiUrl = new URL(apiBaseUrl);
+      apiUrl.protocol = apiUrl.protocol === "https:" ? "wss:" : "ws:";
+      apiUrl.pathname = "/ws/chat";
+      apiUrl.search = "";
+      return apiUrl.toString();
+    }
+
+    return "ws://localhost:5000/ws/chat";
+  }
 
   // Fix common copy-paste mistakes in env vars
   url = url.replace("wss://https://", "wss://");
@@ -440,7 +451,7 @@ const MessagesPane = ({
     let bgColor = "bg-paper";
     let borderColor = "border-ink";
     let tagColor = "bg-paper text-ink";
-    let icon = "🏷️";
+    let icon = "";
 
     if (status === "accepted") {
       bgColor = "bg-campus-green";
@@ -796,6 +807,52 @@ const Chat = () => {
     const handleRealtime = (event: Event) => {
       const payload = (event as CustomEvent).detail || {};
       const eventOfferId = payload.offerId;
+
+      if (
+        payload.type === "message" &&
+        eventOfferId === offerId &&
+        payload.message
+      ) {
+        setMessages((current) => {
+          const clientMessageId = payload.message.clientMessageId;
+          const optimisticIndex = clientMessageId
+            ? current.findIndex((message) => message._id === clientMessageId)
+            : -1;
+
+          if (optimisticIndex !== -1) {
+            const nextMessages = [...current];
+            nextMessages[optimisticIndex] = payload.message;
+            return nextMessages;
+          }
+
+          if (
+            payload.message._id &&
+            current.some((message) => message._id === payload.message._id)
+          ) {
+            return current;
+          }
+
+          return [...current, payload.message];
+        });
+      }
+
+      if (payload.type === "offer_updated" && eventOfferId && payload.status) {
+        setMessages((current) =>
+          current.map((message) =>
+            (message.kind === "OFFER" || message.kind === "COUNTER_OFFER") &&
+            message.metadata?.offerId === eventOfferId
+              ? {
+                  ...message,
+                  metadata: {
+                    ...message.metadata,
+                    status: payload.status,
+                    currentStatus: payload.status,
+                  },
+                }
+              : message,
+          ),
+        );
+      }
 
       window.clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => {

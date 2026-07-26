@@ -76,6 +76,14 @@
   box-shadow: 2px 2px 0 0 var(--color-ink);
 }
 
+/* Non-interactive panels retain the brutal border treatment without responding
+   to clicks made on the controls they contain. */
+.brutal-surface {
+  border: var(--border-w) solid var(--color-ink);
+  box-shadow: var(--shadow-off) var(--shadow-off) 0 0 var(--color-ink);
+  border-radius: var(--brutal-radius);
+}
+
 /* Small variant for badges/chips */
 .brutal-block-sm {
   border: var(--border-w-sm) solid var(--color-ink);

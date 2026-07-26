@@ -422,6 +422,7 @@ export const sendChatMessage = async ({ offerId, senderId, text, kind = 'CUSTOM'
     ...formattedMessage,
     sender: formatChatUserIdentity(formattedMessage.sender, canSendCustom),
     receiver: formatChatUserIdentity(formattedMessage.receiver, canSendCustom),
+    participantIds: [getId(offer.buyer), getId(offer.seller)],
   };
 };
 

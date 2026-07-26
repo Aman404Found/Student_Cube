@@ -164,13 +164,14 @@ wss.on('connection', async (ws, req) => {
             ws.offerIds.add(offerId);
           }
 
-          const message = await sendChatMessage({
+          const savedMessage = await sendChatMessage({
             offerId,
             senderId: user._id,
             text: payload.text,
             kind: payload.kind || 'CUSTOM',
             metadata: payload.metadata || {},
           });
+          const { participantIds = [], ...message } = savedMessage;
 
           const messageEvent = {
             type: 'message',
@@ -187,14 +188,17 @@ wss.on('connection', async (ws, req) => {
           // its socket is connected but has not rejoined the room yet.
           broadcastToOffer(offerId, messageEvent);
           
-          const senderId = message.sender._id || message.sender;
-          const receiverId = message.receiver._id || message.receiver;
+          const recipientIds = [
+            ...new Set(participantIds.filter(Boolean).map((id) => id.toString())),
+          ];
 
-          sendToUser(senderId, messageEvent);
-          sendToUser(receiverId, messageEvent);
-          sendToUser(senderId, { type: 'chat_updated', offerId });
-          sendToUser(receiverId, { type: 'chat_updated', offerId });
-          sendToUser(receiverId, { type: 'unread_changed', offerId });
+          recipientIds.forEach((recipientId) => {
+            sendToUser(recipientId, messageEvent);
+            sendToUser(recipientId, { type: 'chat_updated', offerId });
+          });
+          recipientIds
+            .filter((recipientId) => recipientId !== user._id.toString())
+            .forEach((recipientId) => sendToUser(recipientId, { type: 'unread_changed', offerId }));
           return;
         }
 

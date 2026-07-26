@@ -146,6 +146,33 @@ const ProductDetail = () => {
   }, [isOwner, product?._id]);
 
   useEffect(() => {
+    const handleOfferUpdate = (event: Event) => {
+      const payload = (event as CustomEvent).detail || {};
+      const offerId = payload.offerId;
+      const status = payload.status;
+
+      if (payload.type !== "offer_updated" || !offerId || !status) return;
+
+      setSellerOffers((current) =>
+        current.map((offer) =>
+          offer._id === offerId ? { ...offer, status } : offer,
+        ),
+      );
+      setSelectedOffer((current) => {
+        if (!current || current._id !== offerId) return current;
+        return { ...current, status };
+      });
+      setMyOffer((current) => {
+        if (!current || current._id !== offerId) return current;
+        return { ...current, status };
+      });
+    };
+
+    window.addEventListener("student-cube-realtime", handleOfferUpdate);
+    return () => window.removeEventListener("student-cube-realtime", handleOfferUpdate);
+  }, []);
+
+  useEffect(() => {
     if (product && product._id) {
       const userId = user?._id || user?.id;
       const recentKey = userId ? `recentProducts_${userId}` : "recentProducts_guest";
@@ -208,12 +235,31 @@ const ProductDetail = () => {
   const handleEditSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!product) return;
+
+    const updatedPrice = Number(editForm.price);
+    const updatedOriginalPrice = editForm.originalPrice
+      ? Number(editForm.originalPrice)
+      : undefined;
+
+    if (!Number.isFinite(updatedPrice) || updatedPrice < 0) {
+      toast.error("Price cannot be negative.");
+      return;
+    }
+
+    if (
+      updatedOriginalPrice !== undefined &&
+      (!Number.isFinite(updatedOriginalPrice) || updatedOriginalPrice < 0)
+    ) {
+      toast.error("Original price cannot be negative.");
+      return;
+    }
+
     setIsSubmittingEdit(true);
     try {
       const res = await api.put(`/products/${product._id}`, {
         ...editForm,
-        price: Number(editForm.price),
-        originalPrice: editForm.originalPrice ? Number(editForm.originalPrice) : undefined,
+        price: updatedPrice,
+        originalPrice: updatedOriginalPrice,
       });
       toast.success(res.data.message || "Product updated successfully");
       queryClient.setQueryData(['product', id], res.data.data);
@@ -350,7 +396,7 @@ const ProductDetail = () => {
 
     try {
       const res = await api.put(`/offers/reject/${offerId}`);
-      toast.success(`🗑️ ${res.data.message}`);
+      toast.success(res.data.message);
       setSellerOffers((prev) =>
         prev.map((offer) =>
           offer._id === offerId ? { ...offer, status: "rejected" } : offer,
@@ -384,7 +430,7 @@ const ProductDetail = () => {
       const res = await api.put(`/offers/counter/${offerId}`, {
         counterPrice: Number(counterAmount),
       });
-      toast.success(`🔄 ${res.data.message}`);
+      toast.success(res.data.message);
       const nextOffer = {
         ...res.data.offer,
         offeredPrice: res.data.offer.offerPrice,
@@ -475,7 +521,7 @@ const ProductDetail = () => {
 
     try {
       const res = await api.put(`/offers/buyer/reject-counter/${myOffer._id}`);
-      toast.success(`🗑️ ${res.data.message}`);
+      toast.success(res.data.message);
       setMyOffer((current) =>
         current ? { ...current, status: "failed" } : current,
       );
@@ -758,7 +804,7 @@ const ProductDetail = () => {
                 ) : !isOwner && myOffer?.status === "countered" ? (
                   <div className="bg-paper-blue brutal-block-sm p-6 text-center border-[var(--border-w-sm)] border-solid border-ledger-blue animate-in fade-in duration-300">
                     <h3 className="font-display text-xl font-extrabold text-ledger-blue uppercase tracking-widest mb-2">
-                      Seller Countered! 🔄
+                      Seller Countered
                     </h3>
                     <p className="font-mono text-sm font-bold text-ink mb-4 uppercase">
                       New Demand:{" "}
@@ -1040,9 +1086,7 @@ const ProductDetail = () => {
                         </div>
                       ) : null}
 
-                      {["pending", "rejected", "countered"].includes(
-                        selectedOffer.status,
-                      ) ? (
+                      {selectedOffer ? (
                         <button
                           onClick={() => setIsCountering(true)}
                           className="flex-1 py-3 md:py-4 brutal-block bg-ledger-blue text-paper font-bold uppercase tracking-wide transition-transform hover:-translate-y-1 text-base md:text-lg"
@@ -1170,7 +1214,7 @@ const ProductDetail = () => {
       {/* Edit Product Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-120 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-paper brutal-block max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden relative">
+          <div className="bg-paper brutal-surface max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden relative">
             <div className="p-5 border-b-[length:var(--border-w)] border-ink bg-paper-blue flex justify-between items-center shrink-0">
               <h3 className="font-display text-2xl font-black text-ink uppercase tracking-tight">
                 Edit Product
@@ -1207,6 +1251,7 @@ const ProductDetail = () => {
                     <input
                       type="number"
                       required
+                      min="0"
                       value={editForm.price}
                       onChange={(e) =>
                         setEditForm({ ...editForm, price: e.target.value })
@@ -1220,6 +1265,7 @@ const ProductDetail = () => {
                     </label>
                     <input
                       type="number"
+                      min="0"
                       value={editForm.originalPrice}
                       onChange={(e) =>
                         setEditForm({

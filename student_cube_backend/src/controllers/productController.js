@@ -133,6 +133,23 @@ const validateGoogleDriveVideoLink = (videoProof) => {
   return "";
 };
 
+const validateProductPrices = ({ price, originalPrice }) => {
+  const validatePrice = (value, label) => {
+    if (value === undefined || value === null || String(value).trim() === "") {
+      return null;
+    }
+
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue) || numericValue < 0) {
+      return `${label} must be a valid non-negative number.`;
+    }
+
+    return null;
+  };
+
+  return validatePrice(price, "Price") || validatePrice(originalPrice, "Original price");
+};
+
 export const getUploadSignature = async (req, res) => {
   try {
     if (!req.user) {
@@ -217,6 +234,7 @@ export const createProduct = async (req, res) => {
     
     const imageValidationError = validateProductImages(images, sellerId);
     const videoValidationError = validateGoogleDriveVideoLink(videoProof);
+    const priceValidationError = validateProductPrices({ price, originalPrice });
 
     if (imageValidationError) {
       return fail(400, imageValidationError);
@@ -224,6 +242,10 @@ export const createProduct = async (req, res) => {
 
     if (videoValidationError) {
       return fail(400, videoValidationError);
+    }
+
+    if (priceValidationError) {
+      return fail(400, priceValidationError);
     }
 
     if (
@@ -792,11 +814,16 @@ export const updateProduct = async (req, res) => {
 
     const productTitle = name || title;
     const productCollege = college || location ? normalizeCollegeForStorage(college || location) : undefined;
+    const priceValidationError = validateProductPrices({ price, originalPrice });
+
+    if (priceValidationError) {
+      return res.status(400).json({ success: false, message: priceValidationError });
+    }
 
     if (productTitle) product.title = productTitle;
     if (category) product.category = category;
     if (condition) product.condition = condition;
-    if (price) product.price = Number(price);
+    if (price !== undefined && String(price).trim() !== "") product.price = Number(price);
     if (originalPrice !== undefined) product.originalPrice = Number(originalPrice);
     if (description) product.description = description;
     if (productCollege) product.college = productCollege;
