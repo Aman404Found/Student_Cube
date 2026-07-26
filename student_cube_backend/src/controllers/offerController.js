@@ -227,15 +227,6 @@ export const acceptOffer = async (req, res) => {
       return res.status(400).json({ message: "Only pending offers can be accepted." });
     }
 
-    const existingAcceptedOffer = await Offer.findOne({
-      product: offer.product,
-      status: "accepted"
-    });
-
-    if (existingAcceptedOffer) {
-      return res.status(400).json({ message: "You have already accepted another offer for this product. Please complete or cancel it before accepting a new one." });
-    }
-
     offer.status = "accepted";
     await offer.save();
     await recordChatMessage({
@@ -333,10 +324,6 @@ export const counterOffer = async (req, res) => {
       return res
         .status(404)
         .json({ message: "Offer not found or unauthorized" });
-    }
-
-    if (!["pending", "rejected", "countered"].includes(offer.status)) {
-      return res.status(400).json({ message: "This offer can no longer be countered." });
     }
 
     const product = await Product.findById(offer.product);

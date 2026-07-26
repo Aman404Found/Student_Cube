@@ -227,7 +227,7 @@ const BrowseProducts = () => {
         <div className="flex flex-col md:flex-row gap-8">
           
           {/* SIDEBAR FILTERS */}
-          <aside className="w-full md:w-64 bg-paper brutal-block h-fit overflow-visible">
+          <aside className="w-full md:w-64 bg-paper brutal-surface h-fit overflow-visible">
             <div className="p-5 border-b-[length:var(--border-w-sm)] border-ink bg-paper flex items-center justify-between gap-3 rounded-t-[calc(var(--brutal-radius)-1px)]">
               <button
                 type="button"
