@@ -56,7 +56,7 @@ const JoinCommunity: React.FC<JoinCommunityProps> = ({ isLoggedIn }) => {
               rel="noopener noreferrer"
               className="w-full sm:w-auto"
             >
-              <button className="w-full sm:w-auto px-8 py-3.5 md:py-4 bg-campus-green text-ink font-body font-bold text-base md:text-lg uppercase tracking-wide brutal-block cursor-pointer transition-all duration-120 hover:translate-y-[-2px]"
+              <button className="w-full sm:w-auto px-8 py-3.5 md:py-4 bg-campus-green text-ink font-body font-bold text-base md:text-lg uppercase tracking-wide brutal-block cursor-pointer transition-all duration-120"
                 style={{
                   border: "var(--border-w) solid var(--color-ink)",
                   borderRadius: "var(--brutal-radius)",

@@ -29,6 +29,7 @@ import SafetyBanner from "../components/SafetyBanner";
 import HeroSection from "../components/HeroSection";
 import Workflow from "../components/Workflow";
 import JoinCommunity from "../components/JoinCommunity";
+import Endorsements from "../components/Endorsements";
 
 interface CategoryCount {
   category: string;
@@ -219,6 +220,8 @@ const Index = () => {
       <SafetyBanner isLoggedIn={isLoggedIn} />
 
       <RecentViewedSection />
+
+      <Endorsements />
 
       <JoinCommunity isLoggedIn={isLoggedIn} />
 

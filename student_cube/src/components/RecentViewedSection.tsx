@@ -268,7 +268,7 @@ const RecentViewedSection = () => {
       {/* === FOOTER BUTTON === */}
       <div className="flex justify-center mt-10 md:mt-12">
         <Link to="/buy">
-          <button className="flex items-center px-6 py-3 font-body font-bold text-sm md:text-base brutal-block bg-paper text-ink cursor-pointer transition-all duration-120 hover:translate-y-0.5"
+          <button className="flex items-center px-6 py-3 font-body font-bold text-sm md:text-base brutal-block bg-paper text-ink cursor-pointer transition-all duration-120"
             style={{
               border: "var(--border-w) solid var(--color-ink)",
               borderRadius: "var(--brutal-radius)",

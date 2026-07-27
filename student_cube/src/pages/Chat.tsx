@@ -338,7 +338,7 @@ interface MessagesPaneProps {
   offerActionLoading: string | null;
   onOfferAction: (
     offerId: string,
-    action: "accept" | "reject" | "revoke",
+    action: "accept" | "reject" | "revoke" | "accept-counter" | "reject-counter",
   ) => void;
   offerIdFallback: string;
   onReply?: (msg: ChatMessage) => void;
@@ -418,19 +418,12 @@ const MessagesPane = ({
   }, [messageCount]);
 
   const isLatestOfferActivity = (messageIndex: number) => {
-    const currentOfferId = messages[messageIndex]?.metadata?.offerId;
-    if (!currentOfferId) return false;
-
     for (let index = messages.length - 1; index > messageIndex; index -= 1) {
       const message = messages[index];
-      if (
-        (message?.kind === "OFFER" || message?.kind === "COUNTER_OFFER") &&
-        message.metadata?.offerId === currentOfferId
-      ) {
+      if (message?.kind === "OFFER" || message?.kind === "COUNTER_OFFER") {
         return false;
       }
     }
-
     return true;
   };
 
@@ -446,7 +439,7 @@ const MessagesPane = ({
     const sellerId = getUserId(msg.metadata?.seller);
     const isSeller = sellerId === currentUserId;
     const isBuyer = buyerId === currentUserId;
-    const canAct = isLatestActivity && currentStatus === "pending";
+    const canAct = isLatestActivity && (currentStatus === "pending" || currentStatus === "countered");
 
     let bgColor = "bg-paper";
     let borderColor = "border-ink";
@@ -458,7 +451,7 @@ const MessagesPane = ({
       borderColor = "border-ink";
       tagColor = "bg-ink text-campus-green";
       icon = "";
-    } else if (status === "rejected" || status === "revoked") {
+    } else if (status === "rejected" || status === "revoked" || status === "failed") {
       bgColor = "bg-stamp-red";
       borderColor = "border-ink";
       tagColor = "bg-ink text-stamp-red";
@@ -470,7 +463,7 @@ const MessagesPane = ({
         className={`w-full max-w-sm brutal-block border-[length:var(--border-w)] ${borderColor} ${bgColor} p-4 md:p-6 text-ink shadow-none`}
       >
         <div className="flex items-center justify-between mb-4">
-          <span className={`font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${status === "accepted" || status === "rejected" || status === "revoked" ? "text-ink" : "text-ink/70"}`}>
+          <span className={`font-mono text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${status === "accepted" || status === "rejected" || status === "revoked" || status === "failed" ? "text-ink" : "text-ink/70"}`}>
             {icon} {status === "pending" ? "Offer Received" : `Offer ${status}`}
           </span>
           <span
@@ -484,14 +477,14 @@ const MessagesPane = ({
           <p className="font-mono text-3xl font-black text-ink">
             ₹{amount.toLocaleString("en-IN")}
           </p>
-          <p className={`font-mono text-xs font-bold mt-2 ${status === "accepted" || status === "rejected" || status === "revoked" ? "text-ink" : "text-ink/70"}`}>
+          <p className={`font-mono text-xs font-bold mt-2 ${status === "accepted" || status === "rejected" || status === "revoked" || status === "failed" ? "text-ink" : "text-ink/70"}`}>
             For: {chatProduct?.title || "Product"}
           </p>
         </div>
 
         {canAct && (
           <div className="mt-6 flex gap-3">
-            {isSeller && (
+            {currentStatus === "pending" && isSeller && (
               <>
                 <button
                   type="button"
@@ -511,7 +504,7 @@ const MessagesPane = ({
                 </button>
               </>
             )}
-            {isBuyer && (
+            {currentStatus === "pending" && isBuyer && (
               <button
                 type="button"
                 disabled={Boolean(offerActionLoading)}
@@ -520,6 +513,26 @@ const MessagesPane = ({
               >
                 Cancel Offer
               </button>
+            )}
+            {currentStatus === "countered" && isBuyer && (
+              <>
+                <button
+                  type="button"
+                  disabled={Boolean(offerActionLoading)}
+                  onClick={() => onOfferAction(offerCardId, "accept-counter")}
+                  className="flex-1 brutal-block-sm bg-campus-green px-3 py-3 font-display uppercase text-sm font-bold text-ink hover:bg-paper disabled:opacity-50 transition-colors"
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  disabled={Boolean(offerActionLoading)}
+                  onClick={() => onOfferAction(offerCardId, "reject-counter")}
+                  className="flex-1 brutal-block-sm bg-paper px-3 py-3 font-display uppercase text-sm font-bold text-stamp-red hover:bg-stamp-red hover:text-paper disabled:opacity-50 transition-colors"
+                >
+                  Reject
+                </button>
+              </>
             )}
           </div>
         )}
@@ -801,16 +814,27 @@ const Chat = () => {
     }
   }, [isQueryLoading]);
 
+  const activeOfferIdsRef = useRef(new Set<string>());
+  useEffect(() => {
+    const ids = new Set<string>();
+    if (offerId) ids.add(offerId);
+    messages.forEach(m => {
+      if (m.metadata?.offerId) ids.add(m.metadata.offerId);
+    });
+    activeOfferIdsRef.current = ids;
+  }, [messages, offerId]);
+
   useEffect(() => {
     let timeoutId: number;
 
     const handleRealtime = (event: Event) => {
       const payload = (event as CustomEvent).detail || {};
       const eventOfferId = payload.offerId;
+      const isRelevant = eventOfferId && activeOfferIdsRef.current.has(eventOfferId);
 
       if (
         payload.type === "message" &&
-        eventOfferId === offerId &&
+        isRelevant &&
         payload.message
       ) {
         setMessages((current) => {
@@ -836,11 +860,24 @@ const Chat = () => {
         });
       }
 
-      if (payload.type === "offer_updated" && eventOfferId && payload.status) {
-        setMessages((current) =>
-          current.map((message) =>
-            (message.kind === "OFFER" || message.kind === "COUNTER_OFFER") &&
-            message.metadata?.offerId === eventOfferId
+      if (payload.type === "offer_updated" && isRelevant && payload.status) {
+        setMessages((current) => {
+          let lastIndex = -1;
+          for (let i = current.length - 1; i >= 0; i--) {
+            const message = current[i];
+            if (
+              (message.kind === "OFFER" || message.kind === "COUNTER_OFFER") &&
+              message.metadata?.offerId === eventOfferId
+            ) {
+              lastIndex = i;
+              break;
+            }
+          }
+
+          if (lastIndex === -1) return current;
+
+          return current.map((message, i) =>
+            i === lastIndex
               ? {
                   ...message,
                   metadata: {
@@ -850,33 +887,27 @@ const Chat = () => {
                   },
                 }
               : message,
-          ),
-        );
+          );
+        });
       }
 
       window.clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['chatInbox'] });
 
-        if (eventOfferId) {
+        if (isRelevant) {
+          queryClient.invalidateQueries({ queryKey: ['chatHistory', offerId] });
           if (eventOfferId !== offerId) {
             queryClient.invalidateQueries({ queryKey: ['chatHistory', eventOfferId] });
-          } else {
-            // A room broadcast can be missed while this socket is joining or
-            // reconnecting. The user-level update is the reliable fallback.
-            if (payload.type === "chat_updated") {
-              queryClient.invalidateQueries({ queryKey: ['chatHistory', eventOfferId] });
-            }
+          }
 
-            if (payload.type === "offer_updated" || payload.type === "payment_updated") {
+          if (payload.type === "offer_updated" || payload.type === "payment_updated") {
             if (chatProduct?._id) {
               queryClient.invalidateQueries({ queryKey: ["product", chatProduct._id] });
             } else {
               queryClient.invalidateQueries({ queryKey: ["product"] });
             }
             queryClient.invalidateQueries({ queryKey: ["products"] });
-              queryClient.invalidateQueries({ queryKey: ['chatHistory', eventOfferId] });
-            }
           }
         }
       }, 500);
@@ -1267,47 +1298,60 @@ const Chat = () => {
     nextOfferId: string,
     status: NonNullable<ChatMessage["metadata"]>["status"],
   ) => {
-    setMessages((current) =>
-      current.map((message) =>
-        (message.kind === "OFFER" || message.kind === "COUNTER_OFFER") &&
-        message.metadata?.offerId === nextOfferId
+    setMessages((current) => {
+      let lastIndex = -1;
+      for (let i = current.length - 1; i >= 0; i--) {
+        const message = current[i];
+        if (
+          (message.kind === "OFFER" || message.kind === "COUNTER_OFFER") &&
+          message.metadata?.offerId === nextOfferId
+        ) {
+          lastIndex = i;
+          break;
+        }
+      }
+
+      if (lastIndex === -1) return current;
+
+      return current.map((message, i) =>
+        i === lastIndex
           ? {
               ...message,
               metadata: {
                 ...message.metadata,
                 status,
-                // The action controls use currentStatus so update it alongside
-                // the display status as soon as the offer receives a response.
                 currentStatus: status,
               },
             }
           : message,
-      ),
-    );
+      );
+    });
   };
 
   const handleOfferCardAction = async (
     nextOfferId: string,
-    action: "accept" | "reject" | "revoke",
+    action: "accept" | "reject" | "revoke" | "accept-counter" | "reject-counter",
   ) => {
     setOfferActionLoading(`${nextOfferId}:${action}`);
 
     try {
-      const endpoint =
-        action === "accept"
-          ? `/offers/accept/${nextOfferId}`
-          : action === "reject"
-            ? `/offers/reject/${nextOfferId}`
-            : `/offers/buyer/revoke/${nextOfferId}`;
+      let endpoint = "";
+      if (action === "accept") endpoint = `/offers/accept/${nextOfferId}`;
+      else if (action === "reject") endpoint = `/offers/reject/${nextOfferId}`;
+      else if (action === "revoke") endpoint = `/offers/buyer/revoke/${nextOfferId}`;
+      else if (action === "accept-counter") endpoint = `/offers/buyer/accept-counter/${nextOfferId}`;
+      else if (action === "reject-counter") endpoint = `/offers/buyer/reject-counter/${nextOfferId}`;
 
       const res = await api.put(endpoint);
       const nextStatus =
         res.data.offer?.status ||
-        (action === "accept"
+        (action === "accept" || action === "accept-counter"
           ? "accepted"
           : action === "reject"
             ? "rejected"
-            : "revoked");
+            : action === "reject-counter"
+              ? "failed"
+              : "revoked");
 
       updateOfferMessages(nextOfferId, nextStatus);
       toast.success(res.data.message || "Offer updated.");

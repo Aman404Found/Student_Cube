@@ -14,6 +14,24 @@ const formatPublicImages = (images = []) => (
     .filter(Boolean)
 );
 
+const broadcastMessageEvent = (offer, savedMessage, additionalOfferId = null) => {
+  const offerIds = [offer._id.toString(), additionalOfferId?.toString()].filter(Boolean);
+  const uniqueIds = [...new Set(offerIds)];
+
+  const payloadMessage = {
+    ...(typeof savedMessage.toObject === 'function' ? savedMessage.toObject() : savedMessage),
+    deliveryStatus: 'sent',
+  };
+
+  uniqueIds.forEach((offerId) => {
+    notifyUsers([offer.buyer, offer.seller], {
+      type: 'message',
+      offerId,
+      message: payloadMessage,
+    });
+  });
+};
+
 // 1. Buyer: Make an Offer
 export const makeOffer = async (req, res) => {
   try {
@@ -89,7 +107,7 @@ export const makeOffer = async (req, res) => {
       aliasUserId: buyerId,
       aliasName: existingChat ? "" : trimmedChatAlias,
     });
-    await recordChatMessage({
+    const savedMessage = await recordChatMessage({
       offer,
       sender: buyerId,
       text: "Presented an offer",
@@ -102,6 +120,7 @@ export const makeOffer = async (req, res) => {
         seller: offer.seller,
       },
     });
+    broadcastMessageEvent(offer, savedMessage, chat.offer);
     const notifyOfferIds = [
       offer._id.toString(),
       chat.offer?.toString(),
@@ -229,12 +248,13 @@ export const acceptOffer = async (req, res) => {
 
     offer.status = "accepted";
     await offer.save();
-    await recordChatMessage({
+    const savedMessage = await recordChatMessage({
       offer,
       sender: sellerId,
       text: "Seller accepted the offer.",
       kind: "SYSTEM",
     });
+    broadcastMessageEvent(offer, savedMessage);
     notifyUsers([offer.buyer, offer.seller], {
       type: "offer_updated",
       offerId: offer._id,
@@ -285,12 +305,13 @@ export const rejectOffer = async (req, res) => {
 
     offer.status = "rejected";
     await offer.save();
-    await recordChatMessage({
+    const savedMessage = await recordChatMessage({
       offer,
       sender: sellerId,
       text: "Seller rejected the offer.",
       kind: "SYSTEM",
     });
+    broadcastMessageEvent(offer, savedMessage);
     notifyUsers([offer.buyer, offer.seller], {
       type: "offer_updated",
       offerId: offer._id,
@@ -342,7 +363,7 @@ export const counterOffer = async (req, res) => {
     offer.status = "countered";
     offer.counterPrice = numericCounterPrice;
     await offer.save();
-    await recordChatMessage({
+    const savedMessage = await recordChatMessage({
       offer,
       sender: sellerId,
       text: `Counter offer: ₹${numericCounterPrice}`,
@@ -355,6 +376,7 @@ export const counterOffer = async (req, res) => {
         seller: offer.seller,
       },
     });
+    broadcastMessageEvent(offer, savedMessage);
     notifyUsers([offer.buyer, offer.seller], {
       type: "offer_updated",
       offerId: offer._id,
@@ -396,10 +418,45 @@ export const getBuyerOffer = async (req, res) => {
 
 // 2. BUYER ACCEPTS COUNTER OFFER (Escrow Logic Triggers)
 export const acceptCounterOffer = async (req, res) => {
-  return res.status(410).json({
-    success: false,
-    message: "Deal locking is currently disabled. Contact the seller and wait for them to mark the product as sold.",
-  });
+  try {
+    const { id } = req.params;
+    const buyerId = req.user._id;
+
+    const offer = await Offer.findById(id);
+    if (!offer || offer.buyer.toString() !== buyerId.toString()) {
+      return res
+        .status(404)
+        .json({ message: "Offer not found or unauthorized" });
+    }
+
+    if (offer.status !== "countered") {
+      return res.status(400).json({ message: "Only countered offers can be accepted." });
+    }
+
+    offer.status = "accepted";
+    offer.offerPrice = offer.counterPrice;
+    await offer.save();
+    const savedMessage = await recordChatMessage({
+      offer,
+      sender: buyerId,
+      text: "Buyer accepted the counter offer.",
+      kind: "SYSTEM",
+    });
+    broadcastMessageEvent(offer, savedMessage);
+    notifyUsers([offer.buyer, offer.seller], {
+      type: "offer_updated",
+      offerId: offer._id,
+      status: offer.status,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Counter offer accepted successfully.",
+      offer,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 
 // 3. BUYER REJECTS COUNTER OFFER
@@ -417,12 +474,13 @@ export const rejectCounterOffer = async (req, res) => {
 
     offer.status = "failed";
     await offer.save();
-    await recordChatMessage({
+    const savedMessage = await recordChatMessage({
       offer,
       sender: buyerId,
       text: "Buyer rejected the counter offer.",
       kind: "SYSTEM",
     });
+    broadcastMessageEvent(offer, savedMessage);
     notifyUsers([offer.buyer, offer.seller], {
       type: "offer_updated",
       offerId: offer._id,
@@ -470,12 +528,13 @@ export const revokeOffer = async (req, res) => {
 
     offer.status = "revoked";
     await offer.save();
-    await recordChatMessage({
+    const savedMessage = await recordChatMessage({
       offer,
       sender: buyerId,
       text: "Buyer revoked the offer.",
       kind: "SYSTEM",
     });
+    broadcastMessageEvent(offer, savedMessage);
     notifyUsers([offer.buyer, offer.seller], {
       type: "offer_updated",
       offerId: offer._id,
@@ -520,12 +579,13 @@ export const submitPaymentProof = async (req, res) => {
     offer.transactionId = transactionId;
     offer.paymentStatus = "PENDING_VERIFICATION";
     await offer.save();
-    await recordChatMessage({
+    const savedMessage = await recordChatMessage({
       offer,
       sender: userId,
       text: "Payment proof submitted. Waiting for admin verification.",
       kind: "PAYMENT",
     });
+    broadcastMessageEvent(offer, savedMessage);
     notifyUsers([offer.buyer, offer.seller], {
       type: "payment_updated",
       offerId: offer._id,
@@ -564,12 +624,13 @@ export const verifyPaymentAdmin = async (req, res) => {
       offer.paymentStatus = "PAID";
       offer.paidAt = new Date();
       await offer.save(); // 2. Change Product Status to SOLD_OUT completely 
-      await recordChatMessage({
+      const savedMessage = await recordChatMessage({
         offer,
         sender: offer.seller,
         text: "Payment verified. Full chat is now unlocked.",
         kind: "PAYMENT",
       });
+      broadcastMessageEvent(offer, savedMessage);
       notifyUsers([offer.buyer, offer.seller], {
         type: "payment_updated",
         offerId: offer._id,
@@ -595,12 +656,13 @@ export const verifyPaymentAdmin = async (req, res) => {
       offer.paymentStatus = "REJECTED";
       offer.transactionId = null; // Clear bad UTR
       await offer.save();
-      await recordChatMessage({
+      const savedMessage = await recordChatMessage({
         offer,
         sender: offer.seller,
         text: "Payment proof rejected. Please submit a valid payment proof.",
         kind: "PAYMENT",
       });
+      broadcastMessageEvent(offer, savedMessage);
       notifyUsers([offer.buyer, offer.seller], {
         type: "payment_updated",
         offerId: offer._id,
