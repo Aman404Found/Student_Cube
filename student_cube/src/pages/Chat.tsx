@@ -338,7 +338,7 @@ interface MessagesPaneProps {
   offerActionLoading: string | null;
   onOfferAction: (
     offerId: string,
-    action: "accept" | "reject" | "revoke" | "accept-counter" | "reject-counter",
+    action: "accept" | "reject" | "revoke" | "accept-counter" | "reject-counter" | "counter",
   ) => void;
   offerIdFallback: string;
   onReply?: (msg: ChatMessage) => void;
@@ -434,7 +434,9 @@ const MessagesPane = ({
       msg.metadata?.currentStatus || msg.metadata?.status || "pending";
     const status = isLatestActivity
       ? currentStatus
-      : msg.metadata?.status || "pending";
+      : (msg.metadata?.status === "pending" || msg.metadata?.status === "countered")
+        ? "closed"
+        : msg.metadata?.status || "closed";
     const buyerId = getUserId(msg.metadata?.buyer);
     const sellerId = getUserId(msg.metadata?.seller);
     const isSeller = sellerId === currentUserId;
@@ -456,6 +458,11 @@ const MessagesPane = ({
       borderColor = "border-ink";
       tagColor = "bg-ink text-stamp-red";
       icon = "❌";
+    } else if (status === "closed") {
+      bgColor = "bg-paper";
+      borderColor = "border-ink/30";
+      tagColor = "bg-paper text-ink/50";
+      icon = "";
     }
 
     return (
@@ -483,24 +490,34 @@ const MessagesPane = ({
         </div>
 
         {canAct && (
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-col gap-3">
             {currentStatus === "pending" && isSeller && (
               <>
+                <div className="flex gap-3 w-full">
+                  <button
+                    type="button"
+                    disabled={Boolean(offerActionLoading)}
+                    onClick={() => onOfferAction(offerCardId, "accept")}
+                    className="flex-1 brutal-block-sm bg-campus-green px-3 py-3 font-display uppercase text-sm font-bold text-ink hover:bg-paper disabled:opacity-50 transition-colors"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    disabled={Boolean(offerActionLoading)}
+                    onClick={() => onOfferAction(offerCardId, "reject")}
+                    className="flex-1 brutal-block-sm bg-paper px-3 py-3 font-display uppercase text-sm font-bold text-stamp-red hover:bg-stamp-red hover:text-paper disabled:opacity-50 transition-colors"
+                  >
+                    Reject
+                  </button>
+                </div>
                 <button
                   type="button"
                   disabled={Boolean(offerActionLoading)}
-                  onClick={() => onOfferAction(offerCardId, "accept")}
-                  className="flex-1 brutal-block-sm bg-campus-green px-3 py-3 font-display uppercase text-sm font-bold text-ink hover:bg-paper disabled:opacity-50 transition-colors"
+                  onClick={() => onOfferAction(offerCardId, "counter")}
+                  className="w-full brutal-block-sm bg-ledger-blue px-3 py-3 font-display uppercase text-sm font-bold text-paper hover:bg-paper hover:text-ledger-blue disabled:opacity-50 transition-colors"
                 >
-                  Accept
-                </button>
-                <button
-                  type="button"
-                  disabled={Boolean(offerActionLoading)}
-                  onClick={() => onOfferAction(offerCardId, "reject")}
-                  className="flex-1 brutal-block-sm bg-paper px-3 py-3 font-display uppercase text-sm font-bold text-stamp-red hover:bg-stamp-red hover:text-paper disabled:opacity-50 transition-colors"
-                >
-                  Reject
+                  Counter Offer
                 </button>
               </>
             )}
@@ -516,21 +533,31 @@ const MessagesPane = ({
             )}
             {currentStatus === "countered" && isBuyer && (
               <>
+                <div className="flex gap-3 w-full">
+                  <button
+                    type="button"
+                    disabled={Boolean(offerActionLoading)}
+                    onClick={() => onOfferAction(offerCardId, "accept-counter")}
+                    className="flex-1 brutal-block-sm bg-campus-green px-3 py-3 font-display uppercase text-sm font-bold text-ink hover:bg-paper disabled:opacity-50 transition-colors"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    disabled={Boolean(offerActionLoading)}
+                    onClick={() => onOfferAction(offerCardId, "reject-counter")}
+                    className="flex-1 brutal-block-sm bg-paper px-3 py-3 font-display uppercase text-sm font-bold text-stamp-red hover:bg-stamp-red hover:text-paper disabled:opacity-50 transition-colors"
+                  >
+                    Reject
+                  </button>
+                </div>
                 <button
                   type="button"
                   disabled={Boolean(offerActionLoading)}
-                  onClick={() => onOfferAction(offerCardId, "accept-counter")}
-                  className="flex-1 brutal-block-sm bg-campus-green px-3 py-3 font-display uppercase text-sm font-bold text-ink hover:bg-paper disabled:opacity-50 transition-colors"
+                  onClick={() => onOfferAction(offerCardId, "counter")}
+                  className="w-full brutal-block-sm bg-ledger-blue px-3 py-3 font-display uppercase text-sm font-bold text-paper hover:bg-paper hover:text-ledger-blue disabled:opacity-50 transition-colors"
                 >
-                  Accept
-                </button>
-                <button
-                  type="button"
-                  disabled={Boolean(offerActionLoading)}
-                  onClick={() => onOfferAction(offerCardId, "reject-counter")}
-                  className="flex-1 brutal-block-sm bg-paper px-3 py-3 font-display uppercase text-sm font-bold text-stamp-red hover:bg-stamp-red hover:text-paper disabled:opacity-50 transition-colors"
-                >
-                  Reject
+                  Counter Offer
                 </button>
               </>
             )}
@@ -1330,8 +1357,13 @@ const Chat = () => {
 
   const handleOfferCardAction = async (
     nextOfferId: string,
-    action: "accept" | "reject" | "revoke" | "accept-counter" | "reject-counter",
+    action: "accept" | "reject" | "revoke" | "accept-counter" | "reject-counter" | "counter",
   ) => {
+    if (action === "counter") {
+      setIsOfferBoxOpen(true);
+      return;
+    }
+
     setOfferActionLoading(`${nextOfferId}:${action}`);
 
     try {
@@ -1626,7 +1658,7 @@ const Chat = () => {
                 <button
                   type="submit"
                   disabled={isSubmittingChatOffer}
-                  className="flex-1 sm:flex-none brutal-block-sm bg-ledger-blue px-6 py-3 font-display uppercase font-bold text-sm text-paper hover:bg-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 sm:flex-none brutal-block-sm bg-ledger-blue px-6 py-3 font-display uppercase font-bold text-sm text-paper hover:bg-paper hover:text-ledger-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmittingChatOffer ? "Sending" : "Send"}
                 </button>

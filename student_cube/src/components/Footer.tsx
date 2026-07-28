@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import logo from "../assets/logo-1.jpeg";
-import { Mail, MapPin } from "lucide-react";
+import { Mail, MapPin, Headphones } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -240,29 +240,33 @@ const Footer = () => {
                 className="w-5 h-5 text-signal-orange shrink-0 mt-0.5"
                 strokeWidth={1.5}
               />
-              <div className="flex flex-col gap-2">
-                <div>
-                  <p className="font-mono text-xs font-bold uppercase tracking-wide text-ink/50 mb-0.5">
-                    Business Enquiries
-                  </p>
-                  <a
-                    href="mailto:thestudentcube@gmail.com"
-                    className="hover:text-signal-orange break-all brutal-focus transition-colors"
-                  >
-                    thestudentcube@gmail.com
-                  </a>
-                </div>
-                <div>
-                  <p className="font-mono text-xs font-bold uppercase tracking-wide text-ink/50 mb-0.5">
-                    Customer Support
-                  </p>
-                  <a
-                    href="mailto:support.studentcube@gmail.com"
-                    className="hover:text-signal-orange break-all brutal-focus transition-colors"
-                  >
-                    support.studentcube@gmail.com
-                  </a>
-                </div>
+              <div>
+                <p className="font-mono text-xs font-bold uppercase tracking-wide text-ink/50 mb-0.5">
+                  Business Enquiries
+                </p>
+                <a
+                  href="mailto:thestudentcube@gmail.com"
+                  className="hover:text-signal-orange break-all brutal-focus transition-colors"
+                >
+                  thestudentcube@gmail.com
+                </a>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <Headphones
+                className="w-5 h-5 text-signal-orange shrink-0 mt-0.5"
+                strokeWidth={1.5}
+              />
+              <div>
+                <p className="font-mono text-xs font-bold uppercase tracking-wide text-ink/50 mb-0.5">
+                  Customer Support
+                </p>
+                <a
+                  href="mailto:support.studentcube@gmail.com"
+                  className="hover:text-signal-orange break-all brutal-focus transition-colors"
+                >
+                  support.studentcube@gmail.com
+                </a>
               </div>
             </li>
             <li className="flex items-start gap-3">
@@ -285,7 +289,7 @@ const Footer = () => {
         className="max-w-7xl mx-auto mt-16 pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left border-t-[var(--border-w)] border-ink"
       >
         <p className="text-ink/60 font-mono text-xs uppercase tracking-wide font-bold">
-          © {new Date().getFullYear()} Student Cube Private Limited. All rights
+          © {new Date().getFullYear()} Student Cube. All rights
           reserved.
         </p>
         <div className="flex flex-wrap justify-center gap-4 sm:gap-6 font-mono text-xs sm:text-[10px] md:text-xs text-ink/60 uppercase tracking-wide font-bold">

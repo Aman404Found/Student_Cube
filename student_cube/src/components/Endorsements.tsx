@@ -3,6 +3,8 @@ import { Star, Quote, User } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { prefersReducedMotion, EASE_SNAP } from "../lib/motion";
+import sparkImg from "../assets/spark.jpeg";
+import aheadImg from "../assets/ahead.jpeg";
 
 const endorsementsData = [
   {
@@ -15,6 +17,7 @@ const endorsementsData = [
     bgColor: "bg-[#FFF699]",
     textColor: "text-[#0a0a0a]",
     rating: 5,
+    image: sparkImg,
   },
   {
     id: 2,
@@ -26,6 +29,7 @@ const endorsementsData = [
     bgColor: "bg-[#B7E7F3]",
     textColor: "text-[#0a0a0a]",
     rating: 5,
+    image: aheadImg,
   },
 ];
 
@@ -119,8 +123,12 @@ const Endorsements: React.FC = () => {
 
               {/* Reviewer Profile */}
               <div className="relative z-10 flex items-start gap-4 mt-auto border-t-[length:var(--border-w-sm)] border-current pt-6">
-                <div className="w-12 h-12 bg-paper border-[length:var(--border-w)] border-ink shadow-[2px_2px_0px_0px_var(--color-ink)] flex items-center justify-center shrink-0">
-                  <User className="w-6 h-6 text-ink" />
+                <div className="w-12 h-12 bg-paper border-[length:var(--border-w)] border-ink shadow-[2px_2px_0px_0px_var(--color-ink)] flex items-center justify-center shrink-0 overflow-hidden">
+                  {endorsement.image ? (
+                    <img src={endorsement.image} alt={endorsement.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-6 h-6 text-ink" />
+                  )}
                 </div>
                 <div>
                   <h4 className={`font-display text-lg sm:text-xl font-bold uppercase ${endorsement.textColor}`}>
